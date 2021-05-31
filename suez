@@ -60,8 +60,10 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
     table.add_column("inbound", justify="right", style="bright_red")
     table.add_column("ratio", justify="center")
     table.add_column("outbound", justify="right", style="green")
-    table.add_column("local\nfee", justify="right", style="bright_blue")
-    table.add_column("remote\nfee", justify="right", style="bright_yellow")
+    table.add_column("local\nbase_fee", justify="right", style="bright_blue")
+    table.add_column("local\nfee_rate", justify="right", style="bright_blue")
+    table.add_column("remote\nbase_fee", justify="right", style="bright_yellow")
+    table.add_column("remote\nfee_rate", justify="right", style="bright_yellow")
     table.add_column("uptime", justify="right", style="bright_black")
     table.add_column("alias")
 
@@ -99,14 +101,22 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
 
         # fees
         chan = ln.getchaninfo(c["chan_id"])
+        node1_fee = (
+            chan["node1_policy"]["fee_base_msat"],
+            chan["node1_policy"]["fee_rate_milli_msat"],
+        )
+        node2_fee = (
+            chan["node2_policy"]["fee_base_msat"],
+            chan["node2_policy"]["fee_rate_milli_msat"],
+        )
         if chan["node1_pub"] != identity:
             assert chan["node2_pub"] == identity
-            fee_remote = chan["node1_policy"]["fee_rate_milli_msat"]
-            fee_local = chan["node2_policy"]["fee_rate_milli_msat"]
+            fee_remote = node1_fee
+            fee_local = node2_fee
         if chan["node2_pub"] != identity:
             assert chan["node1_pub"] == identity
-            fee_local = chan["node1_policy"]["fee_rate_milli_msat"]
-            fee_remote = chan["node2_policy"]["fee_rate_milli_msat"]
+            fee_local = node1_fee
+            fee_remote = node2_fee
 
         # alias
         alias = ln.getnodeinfo(pubkey)["alias"]
@@ -117,8 +127,10 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
             "{:,}".format(inbound),
             bar,
             "{:,}".format(outbound),
-            str(fee_local),
-            str(fee_remote),
+            str(fee_local[0]),
+            str(fee_local[1]),
+            str(fee_remote[0]),
+            str(fee_remote[1]),
             str(uptime),
             alias,
         )
