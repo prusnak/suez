@@ -40,6 +40,12 @@ class LnClient:
         )
 
 
+def _sort_channels(x):
+    local = int(x["local_balance"])
+    remote = int(x["remote_balance"])
+    return local / (local + remote)
+
+
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
@@ -61,11 +67,7 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
 
     total_inbound, total_outbound = 0, 0
 
-    for c in sorted(
-        ln.listchannels(),
-        key=lambda x: int(x["local_balance"])
-        / (int(x["local_balance"]) + int(x["remote_balance"])),
-    ):
+    for c in sorted(ln.listchannels(), key=_sort_channels):
         active, pubkey, point = c["active"], c["remote_pubkey"], c["channel_point"]
         capacity, outbound, inbound = (
             int(c["capacity"]),
