@@ -82,10 +82,10 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
         if base_fee and fee_rate:
             ratio = outbound / (outbound + inbound) - 0.5
             coef = math.exp(-fee_sigma * ratio * ratio)
-            fee_rate = 0.000001 * coef * fee_rate
-            if fee_rate < 0.000001:
-                fee_rate = 0.000001
-            ln.updatechanpolicy(point, base_fee, fee_rate, time_lock_delta)
+            _fee_rate = 0.000001 * coef * fee_rate
+            if _fee_rate < 0.000001:
+                _fee_rate = 0.000001
+            ln.updatechanpolicy(point, base_fee, _fee_rate, time_lock_delta)
 
         # fees
         chan = ln.getchaninfo(c["chan_id"])
