@@ -30,7 +30,7 @@ class LnClient:
         return self._run(
             "updatechanpolicy",
             "--base_fee_msat",
-            int(base),
+            str(base),
             "--fee_rate",
             "%0.8f" % rate,
             "--time_lock_delta",
