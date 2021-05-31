@@ -26,25 +26,26 @@ class LnClient:
     def getchaninfo(self, node):
         return self._run("getchaninfo", node)
 
-    def updatechanpolicy(self, point, base, rate):
+    def updatechanpolicy(self, point, base_fee, fee_rate, time_lock_delta):
         return self._run(
             "updatechanpolicy",
             "--base_fee_msat",
-            str(base),
+            str(base_fee),
             "--fee_rate",
-            "%0.8f" % rate,
+            "%0.8f" % fee_rate,
             "--time_lock_delta",
-            "144",
+            str(time_lock_delta),
             "--chan_point",
             point,
         )
 
 
 @click.command()
-@click.option("--set-base-fee", default=0, help="Set base fee")
-@click.option("--set-fee-rate", default=0, help="Set fee rate")
+@click.option("--base-fee", default=0, help="Set base fee")
+@click.option("--fee-rate", default=0, help="Set fee rate")
+@click.option("--time_lock_delta", default=144, help="Set time lock delta")
 @click.option("--fee-sigma", default=24, help="Fee sigma")
-def suez(set_base_fee, set_fee_rate, fee_sigma):
+def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
     ln = LnClient()
 
     identity = ln.getinfo()["identity_pubkey"]
@@ -78,14 +79,13 @@ def suez(set_base_fee, set_fee_rate, fee_sigma):
         uptime = int(100 * int(c["uptime"]) / int(c["lifetime"]))
 
         # set fee
-        if set_base_fee and set_fee_rate:
-            base_fee = set_base_fee
+        if base_fee and fee_rate:
             ratio = outbound / (outbound + inbound) - 0.5
             coef = math.exp(-fee_sigma * ratio * ratio)
-            fee_rate = 0.000001 * coef * set_fee_rate
+            fee_rate = 0.000001 * coef * fee_rate
             if fee_rate < 0.000001:
                 fee_rate = 0.000001
-            ln.updatechanpolicy(point, base_fee, fee_rate)
+            ln.updatechanpolicy(point, base_fee, fee_rate, time_lock_delta)
 
         # fees
         chan = ln.getchaninfo(c["chan_id"])
