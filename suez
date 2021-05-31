@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import subprocess
+from datetime import datetime
 import json
 import math
+import subprocess
 
 import click
 from rich import box
@@ -26,6 +27,11 @@ class LnClient:
     def getchaninfo(self, node):
         return self._run("getchaninfo", node)
 
+    def fwdinghistory(self, since):
+        return self._run(
+            "fwdinghistory", "--max_events", "50000", "--start_time", since
+        )
+
     def updatechanpolicy(self, point, base_fee, fee_rate, time_lock_delta):
         return self._run(
             "updatechanpolicy",
@@ -46,6 +52,11 @@ def _sort_channels(x):
     return local / (local + remote)
 
 
+def _since(ts):
+    d = datetime.utcnow() - datetime.utcfromtimestamp(ts)
+    return "%0.1f" % (d.total_seconds() / 86400)
+
+
 @click.command()
 @click.option("--base_fee", default=0, help="Set base fee")
 @click.option("--fee_rate", default=0, help="Set fee rate")
@@ -53,21 +64,30 @@ def _sort_channels(x):
 @click.option("--fee_sigma", default=24, help="Fee sigma")
 def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
     ln = LnClient()
+    chan_updates = {}
 
     identity = ln.getinfo()["identity_pubkey"]
 
     table = Table(box=box.SIMPLE)
-    table.add_column("inbound", justify="right", style="bright_red")
-    table.add_column("ratio", justify="center")
-    table.add_column("outbound", justify="right", style="green")
-    table.add_column("local\nbase_fee", justify="right", style="bright_blue")
-    table.add_column("local\nfee_rate", justify="right", style="bright_blue")
-    table.add_column("remote\nbase_fee", justify="right", style="bright_yellow")
-    table.add_column("remote\nfee_rate", justify="right", style="bright_yellow")
-    table.add_column("uptime", justify="right", style="bright_black")
-    table.add_column("alias")
+    table.add_column("\ninbound", justify="right", style="bright_red")
+    table.add_column("\nratio", justify="center")
+    table.add_column("\noutbound", justify="right", style="green")
+    table.add_column("local\nbase_fee\n(msat)", justify="right", style="bright_blue")
+    table.add_column("local\nfee_rate\n(ppm)", justify="right", style="bright_blue")
+    table.add_column("remote\nbase_fee\n(msat)", justify="right", style="bright_yellow")
+    table.add_column("remote\nfee_rate\n(ppm)", justify="right", style="bright_yellow")
+    table.add_column("uptime\n\n(%)", justify="right", style="bright_black")
+    table.add_column("last\nforward\n(days)", justify="right")
+    table.add_column("\nalias")
 
     total_inbound, total_outbound = 0, 0
+
+    for fe in ln.fwdinghistory("-28d")["forwarding_events"]:
+        c1 = fe["chan_id_in"]
+        c2 = fe["chan_id_out"]
+        ts = int(fe["timestamp"])
+        chan_updates[c1] = max(ts, chan_updates.get(c1, 0))
+        chan_updates[c2] = max(ts, chan_updates.get(c2, 0))
 
     for c in sorted(ln.listchannels(), key=_sort_channels):
         active, pubkey, point = c["active"], c["remote_pubkey"], c["channel_point"]
@@ -91,7 +111,7 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
         uptime = int(100 * int(c["uptime"]) / int(c["lifetime"]))
 
         # set fee
-        if base_fee and fee_rate:
+        if base_fee > 0 and fee_rate > 0:
             ratio = outbound / (outbound + inbound) - 0.5
             coef = math.exp(-fee_sigma * ratio * ratio)
             _fee_rate = 0.000001 * coef * fee_rate
@@ -118,6 +138,8 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
             fee_local = node1_fee
             fee_remote = node2_fee
 
+        last_forward = chan_updates.get(c["chan_id"], 0)
+
         # alias
         alias = ln.getnodeinfo(pubkey)["alias"]
 
@@ -132,6 +154,7 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
             str(fee_remote[0]),
             str(fee_remote[1]),
             str(uptime),
+            _since(last_forward) if last_forward else "never",
             alias,
         )
 
