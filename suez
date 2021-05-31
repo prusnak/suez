@@ -51,12 +51,12 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
     identity = ln.getinfo()["identity_pubkey"]
 
     table = Table(box=box.SIMPLE)
-    table.add_column("inbound", justify="right")
+    table.add_column("inbound", justify="right", style="bright_red")
     table.add_column("ratio", justify="center")
-    table.add_column("outbound", justify="right")
-    table.add_column("local\nfee", justify="right")
-    table.add_column("remote\nfee", justify="right")
-    table.add_column("uptime", justify="right")
+    table.add_column("outbound", justify="right", style="green")
+    table.add_column("local\nfee", justify="right", style="bright_blue")
+    table.add_column("remote\nfee", justify="right", style="bright_yellow")
+    table.add_column("uptime", justify="right", style="bright_black")
     table.add_column("alias")
 
     total_inbound, total_outbound = 0, 0
@@ -74,7 +74,15 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
         )
         send = int(20 * outbound / (outbound + inbound))
         recv = 20 - send
-        bar = ("·" * recv) + "|" + ("·" * send)
+        bar = (
+            "[bright_red]"
+            + ("·" * recv)
+            + "[/bright_red]"
+            + "|"
+            + "[green]"
+            + ("·" * send)
+            + "[/green]"
+        )
 
         uptime = int(100 * int(c["uptime"]) / int(c["lifetime"]))
 
@@ -113,7 +121,7 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
             alias,
         )
 
-    table.add_row("-----------", "", "-----------")
+    table.add_row("─" * 11, None, "─" * 11)
     table.add_row("{:,}".format(total_inbound), "", "{:,}".format(total_outbound))
 
     console = Console()
