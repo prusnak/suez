@@ -58,10 +58,10 @@ def _since(ts):
 
 
 @click.command()
-@click.option("--base_fee", default=0, help="Set base fee")
-@click.option("--fee_rate", default=0, help="Set fee rate")
-@click.option("--time_lock_delta", default=144, help="Set time lock delta")
-@click.option("--fee_sigma", default=24, help="Fee sigma")
+@click.option("--base-fee", default=0, help="Set base fee")
+@click.option("--fee-rate", default=0, help="Set fee rate")
+@click.option("--time-lock-delta", default=144, help="Set time lock delta")
+@click.option("--fee-sigma", default=24, help="Fee sigma")
 def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
     ln = LnClient()
     chan_timestamps = {}
