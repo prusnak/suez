@@ -1,55 +1,36 @@
 #!/usr/bin/env python3
 from datetime import datetime
-import json
 import math
-import subprocess
 
 import click
 from rich import box
 from rich.console import Console
 from rich.table import Table
 
-
-class LnClient:
-    def _run(self, *args):
-        j = subprocess.run(("lncli",) + args, capture_output=True)
-        return json.loads(j.stdout)
-
-    def getinfo(self):
-        return self._run("getinfo")
-
-    def listchannels(self):
-        return self._run("listchannels")["channels"]
-
-    def getnodeinfo(self, node):
-        return self._run("getnodeinfo", node)["node"]
-
-    def getchaninfo(self, node):
-        return self._run("getchaninfo", node)
-
-    def fwdinghistory(self, since):
-        return self._run(
-            "fwdinghistory", "--max_events", "50000", "--start_time", since
-        )
-
-    def updatechanpolicy(self, point, base_fee, fee_rate, time_lock_delta):
-        return self._run(
-            "updatechanpolicy",
-            "--base_fee_msat",
-            str(base_fee),
-            "--fee_rate",
-            "%0.8f" % fee_rate,
-            "--time_lock_delta",
-            str(time_lock_delta),
-            "--chan_point",
-            point,
-        )
+from lndclient import LndClient
 
 
-def _sort_channels(x):
-    local = int(x["local_balance"])
-    remote = int(x["remote_balance"])
-    return local / (local + remote)
+class FeePolicy:
+    def __init__(self, base_fee, fee_rate, fee_sigma, time_lock_delta):
+        self.base_fee = base_fee
+        self.fee_rate = fee_rate
+        self.fee_sigma = fee_sigma
+        self.time_lock_delta = time_lock_delta
+
+    def calculate(self, channel):
+        ratio = channel.local_balance / (channel.local_balance + channel.remote_balance)
+        ratio -= 0.5
+        coef = math.exp(-self.fee_sigma * ratio * ratio)
+        fee_rate = 0.000001 * coef * self.fee_rate
+        if fee_rate < 0.000001:
+            fee_rate = 0.000001
+        base_fee = self.base_fee
+        time_lock_delta = self.time_lock_delta
+        return base_fee, fee_rate, time_lock_delta
+
+
+def _sort_channels(c):
+    return c.local_balance / (c.local_balance + c.remote_balance)
 
 
 def _since(ts):
@@ -60,14 +41,15 @@ def _since(ts):
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
-@click.option("--time-lock-delta", default=144, help="Set time lock delta")
 @click.option("--fee-sigma", default=24, help="Fee sigma")
-def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
-    ln = LnClient()
-    chan_timestamps = {}
-    chan_fees = {}
+@click.option("--time-lock-delta", default=144, help="Set time lock delta")
+def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
+    ln = LndClient()
 
-    identity = ln.getinfo()["identity_pubkey"]
+    if base_fee and fee_rate:
+        policy = FeePolicy(base_fee, fee_rate, fee_sigma, time_lock_delta)
+        ln.apply_fee_policy(policy)
+        ln.refresh()
 
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
@@ -82,30 +64,10 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
     table.add_column("earned\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("\nalias")
 
-    total_inbound, total_outbound, total_fee = 0, 0, 0
+    total_local, total_remote, total_fees = 0, 0, 0
 
-    for fe in ln.fwdinghistory("-30d")["forwarding_events"]:
-        c1 = fe["chan_id_in"]
-        c2 = fe["chan_id_out"]
-        ts = int(fe["timestamp"])
-        fee = int(fe["fee"])
-        chan_timestamps[c1] = max(ts, chan_timestamps.get(c1, 0))
-        chan_timestamps[c2] = max(ts, chan_timestamps.get(c2, 0))
-        if not c1 in chan_fees:
-            chan_fees[c1] = 0
-        if not c2 in chan_fees:
-            chan_fees[c2] = 0
-        chan_fees[c1] += fee
-        chan_fees[c2] += fee
-
-    for c in sorted(ln.listchannels(), key=_sort_channels):
-        active, pubkey, point = c["active"], c["remote_pubkey"], c["channel_point"]
-        capacity, outbound, inbound = (
-            int(c["capacity"]),
-            int(c["local_balance"]),
-            int(c["remote_balance"]),
-        )
-        send = int(10 * outbound / (outbound + inbound))
+    for c in sorted(ln.channels.values(), key=_sort_channels):
+        send = int(10 * c.local_balance / (c.local_balance + c.remote_balance))
         recv = 10 - send
         bar = (
             "[bright_red]"
@@ -116,72 +78,36 @@ def suez(base_fee, fee_rate, time_lock_delta, fee_sigma):
             + ("·" * send)
             + "[/green]"
         )
-
-        uptime = int(100 * int(c["uptime"]) / int(c["lifetime"]))
-
-        # set fee
-        if base_fee > 0 and fee_rate > 0:
-            ratio = outbound / (outbound + inbound) - 0.5
-            coef = math.exp(-fee_sigma * ratio * ratio)
-            _fee_rate = 0.000001 * coef * fee_rate
-            if _fee_rate < 0.000001:
-                _fee_rate = 0.000001
-            ln.updatechanpolicy(point, base_fee, _fee_rate, time_lock_delta)
-
-        # fees
-        chan = ln.getchaninfo(c["chan_id"])
-        node1_fee = (
-            chan["node1_policy"]["fee_base_msat"],
-            chan["node1_policy"]["fee_rate_milli_msat"],
-        )
-        node2_fee = (
-            chan["node2_policy"]["fee_base_msat"],
-            chan["node2_policy"]["fee_rate_milli_msat"],
-        )
-        if chan["node1_pub"] != identity:
-            assert chan["node2_pub"] == identity
-            fee_remote = node1_fee
-            fee_local = node2_fee
-        if chan["node2_pub"] != identity:
-            assert chan["node1_pub"] == identity
-            fee_local = node1_fee
-            fee_remote = node2_fee
-
-        last_forward = chan_timestamps.get(c["chan_id"], 0)
-        chan_fee = chan_fees.get(c["chan_id"], 0)
-        total_fee += chan_fee
-
-        # alias
-        alias = ln.getnodeinfo(pubkey)["alias"]
-
-        total_inbound += inbound
-        total_outbound += outbound
+        uptime = 100 * c.uptime // c.lifetime
+        total_fees += c.earned_fees
+        total_local += c.local_balance
+        total_remote += c.remote_balance
         table.add_row(
-            "{:,}".format(inbound),
+            "{:,}".format(c.remote_balance),
             bar,
-            "{:,}".format(outbound),
-            str(fee_local[0]),
-            str(fee_local[1]),
-            str(fee_remote[0]),
-            str(fee_remote[1]),
+            "{:,}".format(c.local_balance),
+            str(c.local_base_fee),
+            str(c.local_fee_rate),
+            str(c.remote_base_fee),
+            str(c.remote_fee_rate),
             str(uptime),
-            _since(last_forward) if last_forward else "never",
-            "{:,}".format(chan_fee) if chan_fee else "-",
-            alias,
+            _since(c.last_forward) if c.last_forward else "never",
+            "{:,}".format(c.earned_fees) if c.earned_fees else "-",
+            c.remote_alias,
         )
 
     table.add_row("─" * 11, None, "─" * 11, None, None, None, None, None, None, "─" * 7)
     table.add_row(
-        "{:,}".format(total_inbound),
+        "{:,}".format(total_remote),
         None,
-        "{:,}".format(total_outbound),
-        None,
-        None,
+        "{:,}".format(total_local),
         None,
         None,
         None,
         None,
-        "{:,}".format(total_fee),
+        None,
+        None,
+        "{:,}".format(total_fees),
     )
 
     console = Console()
