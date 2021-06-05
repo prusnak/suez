@@ -15,6 +15,10 @@ controlled by the `fee_sigma` argument.
 
 Currently, Suez only supports LND, but adding support for c-lightning and Eclair should be trivial.
 
+## Donate
+
+You can tip me some satoshis via [tippin.me/@pavolrusnak](https://tippin.me/@pavolrusnak)
+
 ## License
 
 This software is licensed under the [GNU General Public License v3](COPYING).
