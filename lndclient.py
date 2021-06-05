@@ -93,5 +93,5 @@ class LndClient:
             )
 
     def _run(self, *args):
-        j = subprocess.run(("lncli",) + args, capture_output=True)
+        j = subprocess.run(("lncli",) + args, stdout=subprocess.PIPE)
         return json.loads(j.stdout)
