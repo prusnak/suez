@@ -41,7 +41,7 @@ def _since(ts):
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
 @click.option("--fee-sigma", default=24, help="Fee sigma")
-@click.option("--time-lock-delta", default=144, help="Set time lock delta")
+@click.option("--time-lock-delta", default=40, help="Set time lock delta")
 def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     ln = LndClient()
 
