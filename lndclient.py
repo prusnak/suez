@@ -14,25 +14,6 @@ class LndClient:
         self.local_alias = gi["alias"]
         self.channels = {}
 
-        timestamps, fees = {}, {}
-
-        fwd_events = self._run(
-            "fwdinghistory", "--max_events", "50000", "--start_time", "-30d"
-        )["forwarding_events"]
-        for fe in fwd_events:
-            c1 = fe["chan_id_in"]
-            c2 = fe["chan_id_out"]
-            ts = int(fe["timestamp"])
-            fee = int(fe["fee"])
-            timestamps[c1] = max(ts, timestamps.get(c1, 0))
-            timestamps[c2] = max(ts, timestamps.get(c2, 0))
-            if not c1 in fees:
-                fees[c1] = 0
-            if not c2 in fees:
-                fees[c2] = 0
-            fees[c1] += fee
-            fees[c2] += fee
-
         channels = self._run("listchannels")["channels"]
         for c in channels:
             chan = Channel()
@@ -72,10 +53,25 @@ class LndClient:
             chan.remote_alias = self._run("getnodeinfo", chan.remote_node_id)["node"][
                 "alias"
             ]
-            chan.last_forward = timestamps.get(chan.chan_id, 0)
-            chan.earned_fees = fees.get(chan.chan_id, 0)
+            chan.last_forward = 0
+            chan.earned_fees = 0
 
             self.channels[chan.chan_id] = chan
+
+        fwd_events = self._run(
+            "fwdinghistory", "--max_events", "50000", "--start_time", "-30d"
+        )["forwarding_events"]
+        for fe in fwd_events:
+            c1 = fe["chan_id_in"]
+            c2 = fe["chan_id_out"]
+            ts = int(fe["timestamp"])
+            fee = int(fe["fee"])
+            if c1 in self.channels:
+                self.channels[c1].last_forward = max(ts, self.channels[c1].last_forward)
+                self.channels[c1].earned_fees += fee
+            if c2 in self.channels:
+                self.channels[c2].last_forward = max(ts, self.channels[c2].last_forward)
+                self.channels[c2].earned_fees += fee
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
