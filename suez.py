@@ -62,7 +62,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("\nalias", max_width=24, no_wrap=True)
+    table.add_column("\nalias", max_width=20, no_wrap=True)
 
     total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
 
