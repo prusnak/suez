@@ -66,7 +66,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     total_local, total_remote, total_fees = 0, 0, 0
 
     for c in sorted(ln.channels.values(), key=_sort_channels):
-        send = int(10 * c.local_balance / (c.local_balance + c.remote_balance))
+        send = int(round(10 * c.local_balance / (c.local_balance + c.remote_balance)))
         recv = 10 - send
         bar = (
             "[bright_red]"
