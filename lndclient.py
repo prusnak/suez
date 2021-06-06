@@ -54,7 +54,8 @@ class LndClient:
                 "alias"
             ]
             chan.last_forward = 0
-            chan.earned_fees = 0
+            chan.local_fees = 0
+            chan.remote_fees = 0
 
             self.channels[chan.chan_id] = chan
 
@@ -62,16 +63,20 @@ class LndClient:
             "fwdinghistory", "--max_events", "50000", "--start_time", "-30d"
         )["forwarding_events"]
         for fe in fwd_events:
-            c1 = fe["chan_id_in"]
-            c2 = fe["chan_id_out"]
+            cin = fe["chan_id_in"]
+            cout = fe["chan_id_out"]
             ts = int(fe["timestamp"])
             fee = int(fe["fee"])
-            if c1 in self.channels:
-                self.channels[c1].last_forward = max(ts, self.channels[c1].last_forward)
-                self.channels[c1].earned_fees += fee
-            if c2 in self.channels:
-                self.channels[c2].last_forward = max(ts, self.channels[c2].last_forward)
-                self.channels[c2].earned_fees += fee
+            if cin in self.channels:
+                self.channels[cin].last_forward = max(
+                    ts, self.channels[cin].last_forward
+                )
+                self.channels[cin].remote_fees += fee
+            if cout in self.channels:
+                self.channels[cout].last_forward = max(
+                    ts, self.channels[cout].last_forward
+                )
+                self.channels[cout].local_fees += fee
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():

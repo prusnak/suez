@@ -60,10 +60,11 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     table.add_column("remote\nfee_rate\n(ppm)", justify="right", style="bright_yellow")
     table.add_column("uptime\n\n(%)", justify="right", style="bright_black")
     table.add_column("last\nforward\n(days)", justify="right")
-    table.add_column("earned\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("\nalias")
+    table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
+    table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
+    table.add_column("\nalias", max_width=24, no_wrap=True)
 
-    total_local, total_remote, total_fees = 0, 0, 0
+    total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
 
     for c in sorted(ln.channels.values(), key=_sort_channels):
         send = int(round(10 * c.local_balance / (c.local_balance + c.remote_balance)))
@@ -78,7 +79,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
             + "[/green]"
         )
         uptime = 100 * c.uptime // c.lifetime
-        total_fees += c.earned_fees
+        total_fees_local += c.local_fees
+        total_fees_remote += c.remote_fees
         total_local += c.local_balance
         total_remote += c.remote_balance
         table.add_row(
@@ -91,11 +93,14 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
             str(c.remote_fee_rate),
             str(uptime),
             _since(c.last_forward) if c.last_forward else "never",
-            "{:,}".format(c.earned_fees) if c.earned_fees else "-",
+            "{:,}".format(c.local_fees) if c.local_fees else "-",
+            "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             c.remote_alias,
         )
 
-    table.add_row("─" * 11, None, "─" * 11, None, None, None, None, None, None, "─" * 7)
+    table.add_row(
+        "─" * 11, None, "─" * 11, None, None, None, None, None, None, "─" * 7, "─" * 7
+    )
     table.add_row(
         "{:,}".format(total_remote),
         None,
@@ -106,7 +111,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
         None,
         None,
         None,
-        "{:,}".format(total_fees),
+        "{:,}".format(total_fees_local),
+        "{:,}".format(total_fees_remote),
     )
 
     console = Console()
