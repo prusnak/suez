@@ -17,16 +17,16 @@ class FeePolicy:
         self.time_lock_delta = time_lock_delta
 
     def calculate(self, channel):
-        ratio = channel.local_balance / (channel.local_balance + channel.remote_balance)
-        ratio = 2.0 * ratio - 1.0
-        ratio = max(0.0, -ratio)
+        ratio = channel.local_balance / (channel.capacity + channel.commit_fee)
+        ratio = 1.0 - 2.0 * ratio
+        ratio = max(0.0, ratio)
         coef = math.exp(self.fee_sigma * ratio)
         fee_rate = 0.000001 * coef * self.fee_rate
         if fee_rate < 0.000001:
             fee_rate = 0.000001
         base_fee = self.base_fee
         time_lock_delta = self.time_lock_delta
-        return base_fee, fee_rate, time_lock_delta
+        return base_fee, round(fee_rate, 6), time_lock_delta
 
 
 def _sort_channels(c):
