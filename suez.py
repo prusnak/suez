@@ -18,8 +18,9 @@ class FeePolicy:
 
     def calculate(self, channel):
         ratio = channel.local_balance / (channel.local_balance + channel.remote_balance)
-        ratio -= 0.5
-        coef = math.exp(-self.fee_sigma * ratio * ratio)
+        ratio = 2.0 * ratio - 1.0
+        ratio = max(0.0, ratio)
+        coef = math.exp(self.fee_sigma * ratio)
         fee_rate = 0.000001 * coef * self.fee_rate
         if fee_rate < 0.000001:
             fee_rate = 0.000001
@@ -40,7 +41,7 @@ def _since(ts):
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
-@click.option("--fee-sigma", default=24, help="Fee sigma")
+@click.option("--fee-sigma", default=0.0, help="Fee sigma")
 @click.option("--time-lock-delta", default=40, help="Set time lock delta")
 def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     ln = LndClient()
