@@ -25,8 +25,9 @@ class LndClient:
             )
             chan.channel_point = c["channel_point"]
             chan.uptime, chan.lifetime = int(c["uptime"]), int(c["lifetime"])
-            chan.capacity, chan.local_balance, chan.remote_balance = (
+            chan.capacity, chan.commit_fee, chan.local_balance, chan.remote_balance = (
                 int(c["capacity"]),
+                int(c["commit_fee"]),
                 int(c["local_balance"]),
                 int(c["remote_balance"]),
             )

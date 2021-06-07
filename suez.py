@@ -17,7 +17,7 @@ class FeePolicy:
         self.time_lock_delta = time_lock_delta
 
     def calculate(self, channel):
-        ratio = channel.local_balance / (channel.local_balance + channel.remote_balance)
+        ratio = channel.local_balance / (channel.capacity - channel.commit_fee)
         ratio = 2.0 * ratio - 1.0
         ratio = max(0.0, -ratio)
         coef = math.exp(self.fee_sigma * ratio)
@@ -30,7 +30,7 @@ class FeePolicy:
 
 
 def _sort_channels(c):
-    return c.local_balance / (c.local_balance + c.remote_balance)
+    return c.local_balance / (c.capacity - c.commit_fee)
 
 
 def _since(ts):
@@ -68,7 +68,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
 
     for c in sorted(ln.channels.values(), key=_sort_channels):
-        send = int(round(10 * c.local_balance / (c.local_balance + c.remote_balance)))
+        send = int(round(10 * c.local_balance / (c.capacity - c.commit_fee)))
         recv = 10 - send
         bar = (
             "[bright_red]"
