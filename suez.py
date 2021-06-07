@@ -19,7 +19,7 @@ class FeePolicy:
     def calculate(self, channel):
         ratio = channel.local_balance / (channel.local_balance + channel.remote_balance)
         ratio = 2.0 * ratio - 1.0
-        ratio = max(0.0, ratio)
+        ratio = max(0.0, -ratio)
         coef = math.exp(self.fee_sigma * ratio)
         fee_rate = 0.000001 * coef * self.fee_rate
         if fee_rate < 0.000001:
