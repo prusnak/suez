@@ -14,25 +14,6 @@ class LndClient:
         self.local_alias = gi["alias"]
         self.channels = {}
 
-        timestamps, fees = {}, {}
-
-        fwd_events = self._run(
-            "fwdinghistory", "--max_events", "50000", "--start_time", "-30d"
-        )["forwarding_events"]
-        for fe in fwd_events:
-            c1 = fe["chan_id_in"]
-            c2 = fe["chan_id_out"]
-            ts = int(fe["timestamp"])
-            fee = int(fe["fee"])
-            timestamps[c1] = max(ts, timestamps.get(c1, 0))
-            timestamps[c2] = max(ts, timestamps.get(c2, 0))
-            if not c1 in fees:
-                fees[c1] = 0
-            if not c2 in fees:
-                fees[c2] = 0
-            fees[c1] += fee
-            fees[c2] += fee
-
         channels = self._run("listchannels")["channels"]
         for c in channels:
             chan = Channel()
@@ -44,8 +25,9 @@ class LndClient:
             )
             chan.channel_point = c["channel_point"]
             chan.uptime, chan.lifetime = int(c["uptime"]), int(c["lifetime"])
-            chan.capacity, chan.local_balance, chan.remote_balance = (
+            chan.capacity, chan.commit_fee, chan.local_balance, chan.remote_balance = (
                 int(c["capacity"]),
+                int(c["commit_fee"]),
                 int(c["local_balance"]),
                 int(c["remote_balance"]),
             )
@@ -72,10 +54,30 @@ class LndClient:
             chan.remote_alias = self._run("getnodeinfo", chan.remote_node_id)["node"][
                 "alias"
             ]
-            chan.last_forward = timestamps.get(chan.chan_id, 0)
-            chan.earned_fees = fees.get(chan.chan_id, 0)
+            chan.last_forward = 0
+            chan.local_fees = 0
+            chan.remote_fees = 0
 
             self.channels[chan.chan_id] = chan
+
+        fwd_events = self._run(
+            "fwdinghistory", "--max_events", "50000", "--start_time", "-30d"
+        )["forwarding_events"]
+        for fe in fwd_events:
+            cin = fe["chan_id_in"]
+            cout = fe["chan_id_out"]
+            ts = int(fe["timestamp"])
+            fee = int(fe["fee"])
+            if cin in self.channels:
+                self.channels[cin].last_forward = max(
+                    ts, self.channels[cin].last_forward
+                )
+                self.channels[cin].remote_fees += fee
+            if cout in self.channels:
+                self.channels[cout].last_forward = max(
+                    ts, self.channels[cout].last_forward
+                )
+                self.channels[cout].local_fees += fee
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
@@ -93,5 +95,5 @@ class LndClient:
             )
 
     def _run(self, *args):
-        j = subprocess.run(("lncli",) + args, capture_output=True)
+        j = subprocess.run(("lncli",) + args, stdout=subprocess.PIPE)
         return json.loads(j.stdout)

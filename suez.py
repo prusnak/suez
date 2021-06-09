@@ -17,9 +17,10 @@ class FeePolicy:
         self.time_lock_delta = time_lock_delta
 
     def calculate(self, channel):
-        ratio = channel.local_balance / (channel.local_balance + channel.remote_balance)
-        ratio -= 0.5
-        coef = math.exp(-self.fee_sigma * ratio * ratio)
+        ratio = channel.local_balance / (channel.capacity - channel.commit_fee)
+        ratio = 2.0 * ratio - 1.0
+        ratio = max(0.0, -ratio)
+        coef = math.exp(self.fee_sigma * ratio)
         fee_rate = 0.000001 * coef * self.fee_rate
         if fee_rate < 0.000001:
             fee_rate = 0.000001
@@ -29,7 +30,7 @@ class FeePolicy:
 
 
 def _sort_channels(c):
-    return c.local_balance / (c.local_balance + c.remote_balance)
+    return c.local_balance / (c.capacity - c.commit_fee)
 
 
 def _since(ts):
@@ -40,8 +41,8 @@ def _since(ts):
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
-@click.option("--fee-sigma", default=24, help="Fee sigma")
-@click.option("--time-lock-delta", default=144, help="Set time lock delta")
+@click.option("--fee-sigma", default=0.0, help="Fee sigma")
+@click.option("--time-lock-delta", default=40, help="Set time lock delta")
 def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     # ln = LndClient()
     ln = ClnClient()
@@ -61,13 +62,14 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     table.add_column("remote\nfee_rate\n(ppm)", justify="right", style="bright_yellow")
     table.add_column("uptime\n\n(%)", justify="right", style="bright_black")
     table.add_column("last\nforward\n(days)", justify="right")
-    table.add_column("earned\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("\nalias")
+    table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
+    table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
+    table.add_column("\nalias", max_width=20, no_wrap=True)
 
-    total_local, total_remote, total_fees = 0, 0, 0
+    total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
 
     for c in sorted(ln.channels.values(), key=_sort_channels):
-        send = int(10 * c.local_balance / (c.local_balance + c.remote_balance))
+        send = int(round(10 * c.local_balance / (c.capacity - c.commit_fee)))
         recv = 10 - send
         bar = (
             "[bright_red]"
@@ -79,7 +81,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
             + "[/green]"
         )
         uptime = 100 * c.uptime // c.lifetime
-        total_fees += c.earned_fees
+        total_fees_local += c.local_fees
+        total_fees_remote += c.remote_fees
         total_local += c.local_balance
         total_remote += c.remote_balance
         table.add_row(
@@ -92,11 +95,14 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
             str(c.remote_fee_rate),
             str(uptime),
             _since(c.last_forward) if c.last_forward else "never",
-            "{:,}".format(c.earned_fees) if c.earned_fees else "-",
+            "{:,}".format(c.local_fees) if c.local_fees else "-",
+            "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             c.remote_alias,
         )
 
-    table.add_row("─" * 11, None, "─" * 11, None, None, None, None, None, None, "─" * 7)
+    table.add_row(
+        "─" * 11, None, "─" * 11, None, None, None, None, None, None, "─" * 7, "─" * 7
+    )
     table.add_row(
         "{:,}".format(total_remote),
         None,
@@ -107,7 +113,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
         None,
         None,
         None,
-        "{:,}".format(total_fees),
+        "{:,}".format(total_fees_local),
+        "{:,}".format(total_fees_remote),
     )
 
     console = Console()

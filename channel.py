@@ -6,6 +6,7 @@ class Channel:
     self.local_node_id
     self.remote_node_id
     self.capacity
+    self.commit_fee
     self.local_balance
     self.remote_balance
     self.local_base_fee
