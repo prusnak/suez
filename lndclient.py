@@ -70,11 +70,16 @@ class LndClient:
             cout = fe["chan_id_out"]
             ts = int(fe["timestamp"])
             fee = int(fe["fee"])
+            amt_in = int(fe["amt_in"])
+            amt_out = int(fe["amt_out"])
             if cin in self.channels:
                 self.channels[cin].last_forward = max(
                     ts, self.channels[cin].last_forward
                 )
-                self.channels[cin].remote_fees += fee
+                self.channels[cin].remote_fees += (
+                    self.channels[cin].remote_base_fee
+                    + self.channels[cin].remote_fee_rate * amt_in // 1000000
+                )
             if cout in self.channels:
                 self.channels[cout].last_forward = max(
                     ts, self.channels[cout].last_forward
@@ -97,12 +102,9 @@ class LndClient:
             )
 
     def _run(self, *args):
-        j = subprocess.run(
-            (
-                "lncli",
-                self.client_args,
-            )
-            + args,
-            stdout=subprocess.PIPE,
-        )
+        if self.client_args:
+            args = ["lncli", self.client_args] + list(args)
+        else:
+            args = ["lncli"] + list(args)
+        j = subprocess.run(args, stdout=subprocess.PIPE)
         return json.loads(j.stdout)

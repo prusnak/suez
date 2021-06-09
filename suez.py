@@ -40,21 +40,34 @@ def _since(ts):
 
 
 @click.command()
-@click.option("--base-fee", default=0, help="Set base fee")
-@click.option("--fee-rate", default=0, help="Set fee rate")
-@click.option("--fee-sigma", default=0.0, help="Fee sigma")
-@click.option("--time-lock-delta", default=40, help="Set time lock delta")
+@click.option("--base-fee", default=0, help="Set base fee.")
+@click.option("--fee-rate", default=0, help="Set fee rate.")
+@click.option("--fee-sigma", default=0.0, help="Fee sigma.")
+@click.option("--time-lock-delta", default=40, help="Set time lock delta.")
 @click.option(
     "--client",
     default="LND",
-    type=click.Choice(["LND", "C-Lightning"], case_sensitive=False),
-    help="Type of LN client (LND, C-Lightning, Eclair",
+    type=click.Choice(("lnd", "c-lightning"), case_sensitive=False),
+    help="Type of LN client.",
 )
-@click.option("--client-args", default="", help="Extra arguments to pass to client RPC")
-def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
+@click.option(
+    "--client-args", default="", help="Extra arguments to pass to client RPC."
+)
+@click.option(
+    "--show-remote-fees", is_flag=True, help="Show (estimate of) remote fees."
+)
+def suez(
+    base_fee,
+    fee_rate,
+    fee_sigma,
+    time_lock_delta,
+    client,
+    client_args,
+    show_remote_fees,
+):
     clients = {
-        "LND": lambda client_args: LndClient(client_args),
-        "C-Lightning": lambda client_args: ClnClient(client_args),
+        "lnd": LndClient,
+        "c-lightning": ClnClient,
     }
 
     ln = clients[client](client_args)
@@ -75,7 +88,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
     table.add_column("uptime\n\n(%)", justify="right", style="bright_black")
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
+    if show_remote_fees:
+        table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("\nopener", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
@@ -94,14 +108,14 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
             + "[/green]"
         )
         if c.uptime is not None and c.lifetime is not None:
-            uptime = 100 * c.uptime // c.litefime
+            uptime = 100 * c.uptime // c.lifetime
         else:
             uptime = "n/a"
         total_fees_local += c.local_fees
         total_fees_remote += c.remote_fees
         total_local += c.local_balance
         total_remote += c.remote_balance
-        table.add_row(
+        columns = [
             "{:,}".format(c.remote_balance),
             bar,
             "{:,}".format(c.local_balance),
@@ -112,17 +126,24 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
             str(uptime),
             _since(c.last_forward) if c.last_forward else "never",
             "{:,}".format(c.local_fees) if c.local_fees else "-",
-            "{:,}".format(c.remote_fees) if c.remote_fees else "-",
-            "[dim cyan]local[/dim cyan]"
+        ]
+        if show_remote_fees:
+            columns += [
+                "{:,}".format(c.remote_fees) if c.remote_fees else "-",
+            ]
+        columns += [
+            "[bright_blue]local[/bright_blue]"
             if c.opener == "local"
-            else "[magenta]remote[/magenta]",
+            else "[bright_yellow]remote[/bright_yellow]",
             c.remote_alias,
-        )
+        ]
+        table.add_row(*columns)
 
-    table.add_row(
-        "─" * 11, None, "─" * 11, None, None, None, None, None, None, "─" * 7, "─" * 7
-    )
-    table.add_row(
+    columns = ["─" * 10, None, "─" * 10, None, None, None, None, None, None, "─" * 7]
+    if show_remote_fees:
+        columns += ["─" * 7]
+    table.add_row(*columns)
+    columns = [
         "{:,}".format(total_remote),
         None,
         "{:,}".format(total_local),
@@ -133,8 +154,12 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
         None,
         None,
         "{:,}".format(total_fees_local),
-        "{:,}".format(total_fees_remote),
-    )
+    ]
+    if show_remote_fees:
+        columns += [
+            "{:,}".format(total_fees_remote),
+        ]
+    table.add_row(*columns)
 
     console = Console()
     console.print(table)

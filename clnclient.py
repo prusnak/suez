@@ -101,12 +101,9 @@ class ClnClient:
             self._run("setchannelfee", c.chan_id, base_fee, fee_rate)
 
     def _run(self, *args):
-        j = subprocess.run(
-            (
-                "/usr/local/bin/lightning-cli",
-                self.client_args,
-            )
-            + args,
-            stdout=subprocess.PIPE,
-        )
+        if self.client_args:
+            args = ["lightning-cli", self.client_args] + list(args)
+        else:
+            args = ["lightning-cli"] + list(args)
+        j = subprocess.run(args, stdout=subprocess.PIPE)
         return json.loads(j.stdout)
