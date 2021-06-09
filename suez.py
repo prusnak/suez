@@ -51,7 +51,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
         "C-Lightning": lambda client_args: ClnClient(client_args),
     }
 
-    ln = clients.get(client)(client_args)
+    ln = clients[client](client_args)
 
     if base_fee and fee_rate:
         policy = FeePolicy(base_fee, fee_rate, fee_sigma, time_lock_delta)
@@ -70,7 +70,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("opener", justify="right")
+    table.add_column("\nopener", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
     total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
@@ -90,7 +90,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
         if hasattr(c, "uptime"):
             uptime = 100 * c.uptime
         else:
-            uptime = None
+            uptime = "n/a"
         total_fees_local += c.local_fees
         total_fees_remote += c.remote_fees
         total_local += c.local_balance

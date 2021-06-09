@@ -8,7 +8,7 @@ Tool for pretty printing and optimizing Lightning Network channels.
 
 1. Install [poetry](https://python-poetry.org/)
 2. `poetry install`
-3. `poetry run python ./suez`
+3. `poetry run ./suez`
 
 ## Channel fee policy
 
@@ -22,11 +22,11 @@ Currently, Suez supports LND and C-Lightning.
 By default it uses LND (`lncli`).
 You can use it with C-Lightning as follows:
 
-`poetry run python ./suez --client=C-Lightning`
+`poetry run ./suez --client=C-Lightning`
 
 If you need to pass additional options to the lncli/lightning-cli you can do so:
 
-`poetry run python ./suez --client=C-Lightning --client-args=--conf=/usr/local/etc/lightningd-bitcoin.conf`
+`poetry run ./suez --client=C-Lightning --client-args=--conf=/usr/local/etc/lightningd-bitcoin.conf`
 
 Adding support requires writing a client similar to lndclient.py and instantiating it in suez.py.
 
