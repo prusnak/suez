@@ -87,8 +87,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
             + ("·" * send)
             + "[/green]"
         )
-        if hasattr(c, "uptime"):
-            uptime = 100 * c.uptime
+        if c.uptime is not None and c.lifetime is not None:
+            uptime = 100 * c.uptime // c.litefime
         else:
             uptime = "n/a"
         total_fees_local += c.local_fees

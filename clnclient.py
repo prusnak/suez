@@ -29,6 +29,7 @@ class ClnClient:
                     p["id"]
                 )
                 chan.channel_point = c["channel_id"]
+                chan.uptime, chan.lifetime = None, None
                 chan.capacity, chan.commit_fee, chan.local_balance, chan.remote_balance = (
                     int(c["msatoshi_total"] / 1000),
                     int(int(c["last_tx_fee"].replace("msat","")) / 1000),
