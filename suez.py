@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 
 from lndclient import LndClient
-
+from clnclient import ClnClient
 
 class FeePolicy:
     def __init__(self, base_fee, fee_rate, fee_sigma, time_lock_delta):
@@ -43,8 +43,9 @@ def _since(ts):
 @click.option("--fee-sigma", default=24, help="Fee sigma")
 @click.option("--time-lock-delta", default=144, help="Set time lock delta")
 def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
-    ln = LndClient()
-
+    # ln = LndClient()
+    ln = ClnClient()
+    
     if base_fee and fee_rate:
         policy = FeePolicy(base_fee, fee_rate, fee_sigma, time_lock_delta)
         ln.apply_fee_policy(policy)
