@@ -11,17 +11,18 @@ from clnclient import ClnClient
 
 
 class FeePolicy:
-    def __init__(self, base_fee, fee_rate, fee_sigma, time_lock_delta):
+    def __init__(self, base_fee, fee_rate, fee_spread, time_lock_delta):
         self.base_fee = base_fee
         self.fee_rate = fee_rate
-        self.fee_sigma = fee_sigma
+        self.fee_spread = fee_spread
         self.time_lock_delta = time_lock_delta
 
     def calculate(self, channel):
         ratio = channel.local_balance / (channel.capacity - channel.commit_fee)
-        ratio = 2.0 * ratio - 1.0
-        ratio = max(0.0, -ratio)
-        coef = math.exp(self.fee_sigma * ratio)
+        # -1.0 = all funds local
+        # +1.0 = all funds remote
+        ratio = 1.0 - 2.0 * ratio
+        coef = math.exp(self.fee_spread * ratio)
         fee_rate = 0.000001 * coef * self.fee_rate
         if fee_rate < 0.000001:
             fee_rate = 0.000001
@@ -42,7 +43,7 @@ def _since(ts):
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee.")
 @click.option("--fee-rate", default=0, help="Set fee rate.")
-@click.option("--fee-sigma", default=0.0, help="Fee sigma.")
+@click.option("--fee-spread", default=0.0, help="Fee spread.")
 @click.option("--time-lock-delta", default=40, help="Set time lock delta.")
 @click.option(
     "--client",
@@ -59,7 +60,7 @@ def _since(ts):
 def suez(
     base_fee,
     fee_rate,
-    fee_sigma,
+    fee_spread,
     time_lock_delta,
     client,
     client_args,
@@ -73,7 +74,7 @@ def suez(
     ln = clients[client](client_args)
 
     if base_fee and fee_rate:
-        policy = FeePolicy(base_fee, fee_rate, fee_sigma, time_lock_delta)
+        policy = FeePolicy(base_fee, fee_rate, fee_spread, time_lock_delta)
         ln.apply_fee_policy(policy)
         ln.refresh()
 

@@ -13,8 +13,14 @@ Tool for pretty printing and optimizing Lightning Network channels.
 ## Channel fee policy
 
 You can override the channel fee policy by changing the `FeePolicy` class.
-Example implementation sets exponentially higher fees for channels with lower local balance than half of the channel capacity.
-The steepness is controlled via the `fee_sigma` argument.
+
+Example implementation does the following:
+
+* sets lower fees for channels with mostly local balance
+* sets higher fees for channels with mostly remote balance
+* sets medium fees for balanced channels
+
+You control the spread via the `fee-spread` argument.
 
 ## Lightning node support
 
