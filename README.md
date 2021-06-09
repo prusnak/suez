@@ -24,17 +24,19 @@ You control the spread via the `fee-spread` argument.
 
 ## Lightning node support
 
-Currently, Suez supports LND and C-Lightning.
-By default it uses LND (`lncli`).
-You can use it with C-Lightning as follows:
+Currently, Suez supports LND and c-lightning.
 
-`poetry run ./suez --client=C-Lightning`
+By default it uses LND (`lncli`).
+
+You can use it with c-lightning as follows:
+
+`poetry run ./suez --client=c-lightning`
 
 If you need to pass additional options to the lncli/lightning-cli you can do so:
 
-`poetry run ./suez --client=C-Lightning --client-args=--conf=/usr/local/etc/lightningd-bitcoin.conf`
+`poetry run ./suez --client=c-lightning --client-args=--conf=/usr/local/etc/lightningd-bitcoin.conf`
 
-Adding support requires writing a client similar to lndclient.py and instantiating it in suez.py.
+Adding support requires writing a client similar to `lndclient.py` and instantiating it in `suez.py`.
 
 ## Donate
 
