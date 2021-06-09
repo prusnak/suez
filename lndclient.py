@@ -5,7 +5,8 @@ from channel import Channel
 
 
 class LndClient:
-    def __init__(self):
+    def __init__(self, client_args):
+        self.client_args = client_args
         self.refresh()
 
     def refresh(self):
@@ -19,6 +20,7 @@ class LndClient:
             chan = Channel()
             chan.chan_id = c["chan_id"]
             chan.active = c["active"]
+            chan.opener = "local" if c["initiator"] else "remote"
             chan.local_node_id, chan.remote_node_id = (
                 self.local_pubkey,
                 c["remote_pubkey"],
@@ -95,5 +97,5 @@ class LndClient:
             )
 
     def _run(self, *args):
-        j = subprocess.run(("lncli",) + args, stdout=subprocess.PIPE)
+        j = subprocess.run(("lncli", self.client_args,) + args, stdout=subprocess.PIPE)
         return json.loads(j.stdout)
