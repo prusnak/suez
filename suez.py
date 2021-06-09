@@ -37,16 +37,22 @@ def _since(ts):
     d = datetime.utcnow() - datetime.utcfromtimestamp(ts)
     return "%0.1f" % (d.total_seconds() / 86400)
 
-
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
 @click.option("--fee-sigma", default=0.0, help="Fee sigma")
 @click.option("--time-lock-delta", default=40, help="Set time lock delta")
-def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
-    # ln = LndClient()
-    ln = ClnClient()
-    
+@click.option("--client", default="LND", type=click.Choice(['LND', 'C-Lightning'], case_sensitive=False), help="Type of LN client (LND, C-Lightning, Eclair")
+@click.option("--client-args", default="", help="Extra arguments to pass to client RPC")
+
+def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
+    clients = {
+        "LND": lambda client_args: LndClient(client_args),
+        "C-Lightning": lambda client_args: ClnClient(client_args),
+    }
+
+    ln = clients.get(client)(client_args)
+
     if base_fee and fee_rate:
         policy = FeePolicy(base_fee, fee_rate, fee_sigma, time_lock_delta)
         ln.apply_fee_policy(policy)
@@ -64,7 +70,8 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("\nalias", max_width=20, no_wrap=True)
+    table.add_column("opener", justify="right")
+    table.add_column("\nalias", max_width=25, no_wrap=True)
 
     total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
 
@@ -80,7 +87,10 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
             + ("·" * send)
             + "[/green]"
         )
-        uptime = 100 * c.uptime // c.lifetime
+        if hasattr(c, "uptime"):
+            uptime = 100 * c.uptime
+        else:
+            uptime = None
         total_fees_local += c.local_fees
         total_fees_remote += c.remote_fees
         total_local += c.local_balance
@@ -97,6 +107,7 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta):
             _since(c.last_forward) if c.last_forward else "never",
             "{:,}".format(c.local_fees) if c.local_fees else "-",
             "{:,}".format(c.remote_fees) if c.remote_fees else "-",
+            "[dim cyan]local[/dim cyan]" if c.opener == "local" else "[magenta]remote[/magenta]",
             c.remote_alias,
         )
 

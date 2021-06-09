@@ -19,4 +19,5 @@ class Channel:
     self.lifetime
     self.last_forward
     self.earned_fees
+    self.opener
     """
