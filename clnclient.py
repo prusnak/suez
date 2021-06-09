@@ -3,6 +3,7 @@ import subprocess
 
 from channel import Channel
 
+
 class ClnClient:
     def __init__(self, client_args):
         self.client_args = client_args
@@ -24,17 +25,16 @@ class ClnClient:
                 chan.chan_id = c["short_channel_id"]
                 chan.active = c["state"] == "CHANNELD_NORMAL"
                 chan.opener = c["opener"]
-                chan.local_node_id, chan.remote_node_id = (
-                    self.local_pubkey,
-                    p["id"]
-                )
+                chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
                 chan.channel_point = c["channel_id"]
                 chan.uptime, chan.lifetime = None, None
-                chan.capacity, chan.commit_fee, chan.local_balance, chan.remote_balance = (
-                    int(c["msatoshi_total"] / 1000),
-                    int(int(c["last_tx_fee"].replace("msat","")) / 1000),
-                    int(c["msatoshi_to_us"] / 1000),
-                    int((c["msatoshi_total"] - c["msatoshi_to_us"]) / 1000)
+                chan.capacity, chan.commit_fee = (
+                    c["msatoshi_total"] // 1000,
+                    int(c["last_tx_fee"].replace("msat", "")) // 1000,
+                )
+                chan.local_balance, chan.remote_balance = (
+                    c["msatoshi_to_us"] // 1000,
+                    (c["msatoshi_total"] - c["msatoshi_to_us"]) // 1000,
                 )
                 info = self._run("listchannels", chan.chan_id)["channels"]
                 if len(info) > 0:
@@ -58,12 +58,14 @@ class ClnClient:
                             fee_remote = node2_fee
                     else:
                         fee_local = node1_fee
-                        fee_remote = (0,0)
-                    
+                        fee_remote = 0, 0
+
                 chan.local_base_fee, chan.local_fee_rate = fee_local
                 chan.remote_base_fee, chan.remote_fee_rate = fee_remote
                 chan.local_alias = self.local_alias
-                chan.remote_alias = self._run("listnodes", chan.remote_node_id)["nodes"][0].get("alias")
+                chan.remote_alias = self._run("listnodes", chan.remote_node_id)[
+                    "nodes"
+                ][0].get("alias")
                 if not chan.remote_alias:
                     chan.remote_alias = chan.remote_node_id
                 chan.last_forward = 0
@@ -72,35 +74,39 @@ class ClnClient:
 
                 self.channels[chan.chan_id] = chan
 
-        fwd_events = self._run(
-            "listforwards", "status=settled"
-            )["forwards"]
+        fwd_events = self._run("listforwards", "status=settled")["forwards"]
         for fe in fwd_events:
             cin = fe["in_channel"]
             cout = fe["out_channel"]
             ts = int(fe["resolved_time"])
-            fee = int(fe["fee"] / 1000)
-            amount_in = int(fe["in_msatoshi"] / 1000)
+            fee = fe["fee"] // 1000
+            amount_in = fe["in_msatoshi"] // 1000
             if cin in self.channels:
                 self.channels[cin].last_forward = max(
                     ts, self.channels[cin].last_forward
                 )
-                self.channels[cin].remote_fees += int((self.channels[cin].remote_base_fee + (self.channels[cin].remote_fee_rate * amount_in / 1000)) / 1000)
+                self.channels[cin].remote_fees += (
+                    self.channels[cin].remote_base_fee
+                    + (self.channels[cin].remote_fee_rate * amount_in // 1000)
+                ) // 1000
             if cout in self.channels:
                 self.channels[cout].last_forward = max(
                     ts, self.channels[cout].last_forward
                 )
                 self.channels[cout].local_fees += fee
-            
+
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
             base_fee, fee_rate, time_lock_delta = policy.calculate(c)
-            self._run(
-                "setchannelfee",
-                c.chan_id,
-                base_fee,
-                fee_rate)
-    
+            self._run("setchannelfee", c.chan_id, base_fee, fee_rate)
+
     def _run(self, *args):
-        j = subprocess.run(("/usr/local/bin/lightning-cli", self.client_args,) + args, stdout=subprocess.PIPE)
+        j = subprocess.run(
+            (
+                "/usr/local/bin/lightning-cli",
+                self.client_args,
+            )
+            + args,
+            stdout=subprocess.PIPE,
+        )
         return json.loads(j.stdout)

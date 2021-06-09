@@ -9,6 +9,7 @@ from rich.table import Table
 from lndclient import LndClient
 from clnclient import ClnClient
 
+
 class FeePolicy:
     def __init__(self, base_fee, fee_rate, fee_sigma, time_lock_delta):
         self.base_fee = base_fee
@@ -37,14 +38,19 @@ def _since(ts):
     d = datetime.utcnow() - datetime.utcfromtimestamp(ts)
     return "%0.1f" % (d.total_seconds() / 86400)
 
+
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee")
 @click.option("--fee-rate", default=0, help="Set fee rate")
 @click.option("--fee-sigma", default=0.0, help="Fee sigma")
 @click.option("--time-lock-delta", default=40, help="Set time lock delta")
-@click.option("--client", default="LND", type=click.Choice(['LND', 'C-Lightning'], case_sensitive=False), help="Type of LN client (LND, C-Lightning, Eclair")
+@click.option(
+    "--client",
+    default="LND",
+    type=click.Choice(["LND", "C-Lightning"], case_sensitive=False),
+    help="Type of LN client (LND, C-Lightning, Eclair",
+)
 @click.option("--client-args", default="", help="Extra arguments to pass to client RPC")
-
 def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
     clients = {
         "LND": lambda client_args: LndClient(client_args),
@@ -107,7 +113,9 @@ def suez(base_fee, fee_rate, fee_sigma, time_lock_delta, client, client_args):
             _since(c.last_forward) if c.last_forward else "never",
             "{:,}".format(c.local_fees) if c.local_fees else "-",
             "{:,}".format(c.remote_fees) if c.remote_fees else "-",
-            "[dim cyan]local[/dim cyan]" if c.opener == "local" else "[magenta]remote[/magenta]",
+            "[dim cyan]local[/dim cyan]"
+            if c.opener == "local"
+            else "[magenta]remote[/magenta]",
             c.remote_alias,
         )
 
