@@ -26,7 +26,7 @@ def _since(ts):
 @click.option("--time-lock-delta", default=40, help="Set time lock delta.")
 @click.option(
     "--client",
-    default="LND",
+    default="lnd",
     type=click.Choice(("lnd", "c-lightning"), case_sensitive=False),
     help="Type of LN client.",
 )
