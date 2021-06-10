@@ -97,8 +97,8 @@ class ClnClient:
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
-            base_fee, fee_rate, time_lock_delta = policy.calculate(c)
-            self._run("setchannelfee", c.chan_id, base_fee, fee_rate)
+            base_fee, fee_rate, _ = policy.calculate(c)
+            self._run("setchannelfee", c.chan_id, str(base_fee), str(int(fee_rate * 1000000)))
 
     def _run(self, *args):
         if self.client_args:
