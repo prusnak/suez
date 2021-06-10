@@ -65,7 +65,7 @@ def suez(
     table.add_column("local\nfee_rate\n(ppm)", justify="right", style="bright_blue")
     table.add_column("remote\nbase_fee\n(msat)", justify="right", style="bright_yellow")
     table.add_column("remote\nfee_rate\n(ppm)", justify="right", style="bright_yellow")
-    table.add_column("uptime\n\n(%)", justify="right", style="bright_black")
+    table.add_column("uptime\n\n(%)", justify="right")
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     if show_remote_fees:
@@ -103,7 +103,9 @@ def suez(
             str(c.local_fee_rate),
             str(c.remote_base_fee),
             str(c.remote_fee_rate),
-            str(uptime),
+            "[green]%s[/green]" % uptime
+            if c.active
+            else "[bright_red]%s[/bright_red]" % uptime,
             _since(c.last_forward) if c.last_forward else "never",
             "{:,}".format(c.local_fees) if c.local_fees else "-",
         ]
