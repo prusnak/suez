@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import click
-from rich import box
+from rich import box, markup
 from rich.console import Console
 from rich.table import Table
 
@@ -117,7 +117,7 @@ def suez(
             "[bright_blue]local[/bright_blue]"
             if c.opener == "local"
             else "[bright_yellow]remote[/bright_yellow]",
-            c.remote_alias,
+            markup.escape(c.remote_alias),
         ]
         table.add_row(*columns)
 
