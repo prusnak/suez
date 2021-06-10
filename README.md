@@ -12,15 +12,28 @@ Tool for pretty printing and optimizing Lightning Network channels.
 
 ## Channel fee policy
 
+You can set channel fees by passing `--base-fee` and `--fee-rate` parameters.
+
+For example:
+
+`poetry run ./suez --base-fee 1000 --fee-rate 200`
+
 You can override the channel fee policy by changing the `FeePolicy` class.
 
 Example implementation does the following:
 
-* sets lower fees for channels with mostly local balance
-* sets higher fees for channels with mostly remote balance
-* sets medium fees for balanced channels
+* sets lower fee rate for channels with mostly local balance
+* sets higher fee rate for channels with mostly remote balance
+* sets medium (close to specified) fee rate for balanced channels
 
-You control the spread via the `fee-spread` argument.
+You control the spread via the `--fee-spread` argument. By default `--fee-spread` is set to 0.0 (no spread).
+
+For example:
+
+`poetry run ./suez --base-fee 1000 --fee-rate 500 --fee-spread 1.8`
+
+This will set the fee rate above 500 for channels with mostly remote balance and below 500
+for channels with mostly local balance.
 
 ## Lightning node support
 
