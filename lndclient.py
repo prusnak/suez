@@ -16,7 +16,7 @@ class LndClient:
         self.channels = {}
 
         channels = self._run("listchannels")["channels"]
-        for c in channels:
+        for c in (c for c in channels if c["active"]):
             chan = Channel()
             chan.chan_id = c["chan_id"]
             chan.active = c["active"]
