@@ -33,25 +33,29 @@ class LndClient:
                 int(c["local_balance"]),
                 int(c["remote_balance"]),
             )
-            info = self._run("getchaninfo", chan.chan_id)
-            node1_fee = (
-                int(info["node1_policy"]["fee_base_msat"]),
-                int(info["node1_policy"]["fee_rate_milli_msat"]),
-            )
-            node2_fee = (
-                int(info["node2_policy"]["fee_base_msat"]),
-                int(info["node2_policy"]["fee_rate_milli_msat"]),
-            )
-            if info["node1_pub"] != self.local_pubkey:
-                assert info["node2_pub"] == self.local_pubkey
-                fee_remote = node1_fee
-                fee_local = node2_fee
-            if info["node2_pub"] != self.local_pubkey:
-                assert info["node1_pub"] == self.local_pubkey
-                fee_local = node1_fee
-                fee_remote = node2_fee
-            chan.local_base_fee, chan.local_fee_rate = fee_local
-            chan.remote_base_fee, chan.remote_fee_rate = fee_remote
+            try:
+                info = self._run("getchaninfo", chan.chan_id)
+                node1_fee = (
+                    int(info["node1_policy"]["fee_base_msat"]),
+                    int(info["node1_policy"]["fee_rate_milli_msat"]),
+                )
+                node2_fee = (
+                    int(info["node2_policy"]["fee_base_msat"]),
+                    int(info["node2_policy"]["fee_rate_milli_msat"]),
+                )
+                if info["node1_pub"] != self.local_pubkey:
+                    assert info["node2_pub"] == self.local_pubkey
+                    fee_remote = node1_fee
+                    fee_local = node2_fee
+                if info["node2_pub"] != self.local_pubkey:
+                    assert info["node1_pub"] == self.local_pubkey
+                    fee_local = node1_fee
+                    fee_remote = node2_fee
+                chan.local_base_fee, chan.local_fee_rate = fee_local
+                chan.remote_base_fee, chan.remote_fee_rate = fee_remote
+            except:
+                chan.local_base_fee, chan.local_fee_rate = None, None
+                chan.remote_base_fee, chan.remote_fee_rate = None, None
             chan.local_alias = self.local_alias
             chan.remote_alias = self._run("getnodeinfo", chan.remote_node_id)["node"][
                 "alias"

@@ -99,10 +99,10 @@ def suez(
             "{:,}".format(c.remote_balance),
             bar,
             "{:,}".format(c.local_balance),
-            str(c.local_base_fee),
-            str(c.local_fee_rate),
-            str(c.remote_base_fee),
-            str(c.remote_fee_rate),
+            str(c.local_base_fee) if c.local_base_fee is not None else "-",
+            str(c.local_fee_rate) if c.local_fee_rate is not None else "-",
+            str(c.remote_base_fee) if c.remote_base_fee is not None else "-",
+            str(c.remote_fee_rate) if c.remote_fee_rate is not None else "-",
             "[green]%s[/green]" % uptime
             if c.active
             else "[bright_red]%s[/bright_red]" % uptime,
