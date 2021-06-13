@@ -6,7 +6,7 @@ authors = ["Pavol Rusnak <pavol@rusnak.io>"]
 license = "GPL-3.0-or-later"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = ">=3.6.2,<4.0"
 rich = "^10.2.2"
 click = "^8.0.1"
 dataclasses = {version = "^0.8", python = "~3.6"}
