@@ -73,7 +73,10 @@ def suez(
     table.add_column("\nopener", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
-    total_local, total_remote, total_fees_local, total_fees_remote = 0, 0, 0, 0
+    total_local, total_fees_local = 0, 0
+    total_remote, total_fees_remote = 0, 0
+    local_base_fees, local_fee_rates = [], []
+    remote_base_fees, remote_fee_rates = [], []
 
     for c in sorted(ln.channels.values(), key=_sort_channels):
         send = int(round(10 * c.local_balance / (c.capacity - c.commit_fee)))
@@ -95,6 +98,14 @@ def suez(
         total_fees_remote += c.remote_fees
         total_local += c.local_balance
         total_remote += c.remote_balance
+        if c.local_base_fee is not None:
+            local_base_fees.append(c.local_base_fee)
+        if c.local_fee_rate is not None:
+            local_fee_rates.append(c.local_fee_rate)
+        if c.remote_base_fee is not None:
+            remote_base_fees.append(c.remote_base_fee)
+        if c.remote_fee_rate is not None:
+            remote_fee_rates.append(c.remote_fee_rate)
         columns = [
             "{:,}".format(c.remote_balance),
             bar,
@@ -121,7 +132,18 @@ def suez(
         ]
         table.add_row(*columns)
 
-    columns = ["─" * 10, None, "─" * 10, None, None, None, None, None, None, "─" * 7]
+    columns = [
+        "─" * 10,
+        None,
+        "─" * 10,
+        "─" * 4,
+        "─" * 4,
+        "─" * 4,
+        "─" * 4,
+        None,
+        None,
+        "─" * 7,
+    ]
     if show_remote_fees:
         columns += ["─" * 7]
     table.add_row(*columns)
@@ -129,10 +151,10 @@ def suez(
         "{:,}".format(total_remote),
         None,
         "{:,}".format(total_local),
-        None,
-        None,
-        None,
-        None,
+        "{}".format(sum(local_base_fees) // len(local_base_fees)),
+        "{}".format(sum(local_fee_rates) // len(local_fee_rates)),
+        "{}".format(sum(remote_base_fees) // len(remote_base_fees)),
+        "{}".format(sum(remote_fee_rates) // len(remote_fee_rates)),
         None,
         None,
         "{:,}".format(total_fees_local),
