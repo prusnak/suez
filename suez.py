@@ -52,6 +52,10 @@ def suez(
 
     ln = clients[client](client_args)
 
+    if len(ln.channels) == 0:
+        click.echo("No channels found. Exiting")
+        return
+
     if base_fee and fee_rate:
         policy = FeePolicy(base_fee, fee_rate, fee_spread, time_lock_delta)
         ln.apply_fee_policy(policy)
