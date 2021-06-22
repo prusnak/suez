@@ -107,7 +107,7 @@ class LndClient:
 
     def _run(self, *args):
         if self.client_args:
-            args = ["lncli", self.client_args] + list(args)
+            args = ["lncli"] + list(self.client_args) + list(args)
         else:
             args = ["lncli"] + list(args)
         j = subprocess.run(args, stdout=subprocess.PIPE)
