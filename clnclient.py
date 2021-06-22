@@ -104,7 +104,7 @@ class ClnClient:
 
     def _run(self, *args):
         if self.client_args:
-            args = ["lightning-cli", self.client_args] + list(args)
+            args = ["lightning-cli"] + list(self.client_args) + list(args)
         else:
             args = ["lightning-cli"] + list(args)
         j = subprocess.run(args, stdout=subprocess.PIPE)

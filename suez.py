@@ -31,7 +31,8 @@ def _since(ts):
     help="Type of LN client.",
 )
 @click.option(
-    "--client-args", default="", help="Extra arguments to pass to client RPC."
+    "--client-args", default=[], multiple=True,
+    help="Extra arguments to pass to client RPC."    
 )
 @click.option(
     "--show-remote-fees", is_flag=True, help="Show (estimate of) remote fees."
