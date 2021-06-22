@@ -78,7 +78,7 @@ class ClnClient:
         for fe in fwd_events:
             cin = fe["in_channel"]
             cout = fe["out_channel"]
-            ts = int(fe.get("resolved_time", default=0))
+            ts = int(fe.get("resolved_time", 0))
             fee = fe["fee"] // 1000
             amount_in = fe["in_msatoshi"] // 1000
             if cin in self.channels:
