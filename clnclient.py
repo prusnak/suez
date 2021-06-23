@@ -28,13 +28,15 @@ class ClnClient:
                 chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
                 chan.channel_point = c["channel_id"]
                 chan.uptime, chan.lifetime = None, None
+                total_msat = int(c["total_msat"].replace("msat", ""))
+                to_us_msat = int(c["to_us_msat"].replace("msat", ""))
                 chan.capacity, chan.commit_fee = (
-                    c["msatoshi_total"] // 1000,
+                    total_msat // 1000,
                     int(c["last_tx_fee"].replace("msat", "")) // 1000,
                 )
                 chan.local_balance, chan.remote_balance = (
-                    c["msatoshi_to_us"] // 1000,
-                    (c["msatoshi_total"] - c["msatoshi_to_us"]) // 1000,
+                    to_us_msat // 1000,
+                    (total_msat - to_us_msat) // 1000,
                 )
                 info = self._run("listchannels", chan.chan_id)["channels"]
                 if len(info) > 0:
