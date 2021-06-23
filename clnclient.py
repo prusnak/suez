@@ -22,7 +22,7 @@ class ClnClient:
             if p["channels"]:
                 c = p["channels"][0]
                 chan = Channel()
-                chan.chan_id = c["short_channel_id"]
+                chan.chan_id = c.get("short_channel_id")
                 chan.active = c["state"] == "CHANNELD_NORMAL"
                 chan.opener = c["opener"]
                 chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
@@ -38,7 +38,10 @@ class ClnClient:
                     to_us_msat // 1000,
                     (total_msat - to_us_msat) // 1000,
                 )
-                info = self._run("listchannels", chan.chan_id)["channels"]
+                if chan.chan_id is not None:
+                    info = self._run("listchannels", chan.chan_id)["channels"]
+                else:
+                    info = {}
                 if len(info) > 0:
                     node1_fee = (
                         int(info[0]["base_fee_millisatoshi"]),
@@ -61,6 +64,9 @@ class ClnClient:
                     else:
                         fee_local = node1_fee
                         fee_remote = 0, 0
+                else:
+                    fee_local = 0, 0
+                    fee_remote = 0, 0
 
                 chan.local_base_fee, chan.local_fee_rate = fee_local
                 chan.remote_base_fee, chan.remote_fee_rate = fee_remote
@@ -99,10 +105,11 @@ class ClnClient:
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
-            base_fee, fee_rate, _ = policy.calculate(c)
-            self._run(
-                "setchannelfee", c.chan_id, str(base_fee), str(int(fee_rate * 1000000))
-            )
+            if c.chan_id is not None:
+                base_fee, fee_rate, _ = policy.calculate(c)
+                self._run(
+                    "setchannelfee", c.chan_id, str(base_fee), str(int(fee_rate * 1000000))
+                )
 
     def _run(self, *args):
         if self.client_args:
