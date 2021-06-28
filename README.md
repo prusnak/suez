@@ -61,6 +61,10 @@ Adding support requires writing a client similar to `lndclient.py` and instantia
 
 You can tip me some satoshis via [tippin.me/@pavolrusnak](https://tippin.me/@pavolrusnak)
 
+or you can donate via Spontaneous AMP Payment (data field encodes `tip=suez`):
+
+`lncli sendpayment --amt 10000 --amp --dest 0385218f0e307b6a0e989d2a717d346942d96b4fd550e937de5f8ffe1568510a18 --data 7629168=7375657a`
+
 ## License
 
 This software is licensed under the [GNU General Public License v3](COPYING).
