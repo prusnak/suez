@@ -47,7 +47,13 @@ You can use it with c-lightning as follows:
 
 If you need to pass additional options to the lncli/lightning-cli you can do so:
 
+(single argument)
+
 `poetry run ./suez --client=c-lightning --client-args=--conf=/usr/local/etc/lightningd-bitcoin.conf`
+
+(multiple arguments)
+
+`poetry run ./suez --client-args=--rpcserver=host:10009 --client-args=--macaroonpath=admin.macaroon --client-args=--tlscertpath=tls.cert`
 
 Adding support requires writing a client similar to `lndclient.py` and instantiating it in `suez.py`.
 
