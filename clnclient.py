@@ -108,7 +108,10 @@ class ClnClient:
             if c.chan_id is not None:
                 base_fee, fee_rate, _ = policy.calculate(c)
                 self._run(
-                    "setchannelfee", c.chan_id, str(base_fee), str(int(fee_rate * 1000000))
+                    "setchannelfee",
+                    c.chan_id,
+                    str(base_fee),
+                    str(int(fee_rate * 1000000)),
                 )
 
     def _run(self, *args):

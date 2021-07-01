@@ -5,10 +5,10 @@ from rich import box, markup
 from rich.console import Console
 from rich.table import Table
 
-from bosscore import BosScore
 from clnclient import ClnClient
-from lndclient import LndClient
 from feepolicy import FeePolicy
+from lndclient import LndClient
+from score import Score
 
 
 def _sort_channels(c):
@@ -59,7 +59,7 @@ def suez(
     }
 
     ln = clients[client](client_args)
-    bos = BosScore()
+    score = Score()
 
     if len(ln.channels) == 0:
         click.echo("No channels found. Exiting")
@@ -84,7 +84,7 @@ def suez(
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("\nopener", justify="right")
-    table.add_column("bos\nscore\n(M)", justify="right")
+    table.add_column("\nscore\n(M)", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
     total_local, total_fees_local = 0, 0
@@ -138,12 +138,12 @@ def suez(
             columns += [
                 "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             ]
-        score = bos.get(c.remote_node_id)
+        s = score.get(c.remote_node_id)
         columns += [
             "[bright_blue]local[/bright_blue]"
             if c.opener == "local"
             else "[bright_yellow]remote[/bright_yellow]",
-            _score(score) if score is not None else "-",
+            _score(s) if s is not None else "-",
             markup.escape(c.remote_alias),
         ]
         table.add_row(*columns)
