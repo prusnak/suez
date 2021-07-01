@@ -5,6 +5,7 @@ from rich import box, markup
 from rich.console import Console
 from rich.table import Table
 
+from bosscore import BosScore
 from clnclient import ClnClient
 from lndclient import LndClient
 from feepolicy import FeePolicy
@@ -19,6 +20,10 @@ def _since(ts):
     return "%0.1f" % (d.total_seconds() / 86400)
 
 
+def _score(score):
+    return "%d" % (score // 1000000)
+
+
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee.")
 @click.option("--fee-rate", default=0, help="Set fee rate.")
@@ -31,8 +36,10 @@ def _since(ts):
     help="Type of LN client.",
 )
 @click.option(
-    "--client-args", default=[], multiple=True,
-    help="Extra arguments to pass to client RPC."    
+    "--client-args",
+    default=[],
+    multiple=True,
+    help="Extra arguments to pass to client RPC.",
 )
 @click.option(
     "--show-remote-fees", is_flag=True, help="Show (estimate of) remote fees."
@@ -52,6 +59,7 @@ def suez(
     }
 
     ln = clients[client](client_args)
+    bos = BosScore()
 
     if len(ln.channels) == 0:
         click.echo("No channels found. Exiting")
@@ -63,19 +71,20 @@ def suez(
         ln.refresh()
 
     table = Table(box=box.SIMPLE)
-    table.add_column("\ninbound", justify="right", style="bright_red")
+    table.add_column("in\nbound\n(k)", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
-    table.add_column("\noutbound", justify="right", style="green")
+    table.add_column("out\nbound\n(k)", justify="right", style="green")
     table.add_column("local\nbase_fee\n(msat)", justify="right", style="bright_blue")
     table.add_column("local\nfee_rate\n(ppm)", justify="right", style="bright_blue")
     table.add_column("remote\nbase_fee\n(msat)", justify="right", style="bright_yellow")
     table.add_column("remote\nfee_rate\n(ppm)", justify="right", style="bright_yellow")
-    table.add_column("uptime\n\n(%)", justify="right")
+    table.add_column("\nuptime\n(%)", justify="right")
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
     table.add_column("\nopener", justify="right")
+    table.add_column("bos\nscore\n(M)", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
     total_local, total_fees_local = 0, 0
@@ -112,9 +121,9 @@ def suez(
         if c.remote_fee_rate is not None:
             remote_fee_rates.append(c.remote_fee_rate)
         columns = [
-            "{:,}".format(c.remote_balance),
+            "{:,}".format(c.remote_balance // 1000),
             bar,
-            "{:,}".format(c.local_balance),
+            "{:,}".format(c.local_balance // 1000),
             str(c.local_base_fee) if c.local_base_fee is not None else "-",
             str(c.local_fee_rate) if c.local_fee_rate is not None else "-",
             str(c.remote_base_fee) if c.remote_base_fee is not None else "-",
@@ -129,18 +138,20 @@ def suez(
             columns += [
                 "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             ]
+        score = bos.get(c.remote_node_id)
         columns += [
             "[bright_blue]local[/bright_blue]"
             if c.opener == "local"
             else "[bright_yellow]remote[/bright_yellow]",
+            _score(score) if score is not None else "-",
             markup.escape(c.remote_alias),
         ]
         table.add_row(*columns)
 
     columns = [
-        "─" * 10,
+        "─" * 6,
         None,
-        "─" * 10,
+        "─" * 6,
         "─" * 4,
         "─" * 4,
         "─" * 4,
@@ -153,9 +164,9 @@ def suez(
         columns += ["─" * 7]
     table.add_row(*columns)
     columns = [
-        "{:,}".format(total_remote),
+        "{:,}".format(total_remote // 1000),
         None,
-        "{:,}".format(total_local),
+        "{:,}".format(total_local // 1000),
         "{}".format(sum(local_base_fees) // len(local_base_fees)),
         "{}".format(sum(local_fee_rates) // len(local_fee_rates)),
         "{}".format(sum(remote_base_fees) // len(remote_base_fees)),

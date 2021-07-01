@@ -9,6 +9,7 @@ license = "GPL-3.0-or-later"
 python = "^3.6.2"
 rich = "^10.2.2"
 click = "^8.0.1"
+requests = "^2.25.1"
 dataclasses = {version = "^0.8", python = "~3.6"}
 
 [tool.poetry.dev-dependencies]
