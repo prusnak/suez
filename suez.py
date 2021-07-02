@@ -24,52 +24,7 @@ def _score(score):
     return "%d" % (score // 1000000)
 
 
-@click.command()
-@click.option("--base-fee", default=0, help="Set base fee.")
-@click.option("--fee-rate", default=0, help="Set fee rate.")
-@click.option("--fee-spread", default=0.0, help="Fee spread.")
-@click.option("--time-lock-delta", default=40, help="Set time lock delta.")
-@click.option(
-    "--client",
-    default="lnd",
-    type=click.Choice(("lnd", "c-lightning"), case_sensitive=False),
-    help="Type of LN client.",
-)
-@click.option(
-    "--client-args",
-    default=[],
-    multiple=True,
-    help="Extra arguments to pass to client RPC.",
-)
-@click.option(
-    "--show-remote-fees", is_flag=True, help="Show (estimate of) remote fees."
-)
-def suez(
-    base_fee,
-    fee_rate,
-    fee_spread,
-    time_lock_delta,
-    client,
-    client_args,
-    show_remote_fees,
-):
-    clients = {
-        "lnd": LndClient,
-        "c-lightning": ClnClient,
-    }
-
-    ln = clients[client](client_args)
-    score = Score()
-
-    if len(ln.channels) == 0:
-        click.echo("No channels found. Exiting")
-        return
-
-    if base_fee and fee_rate:
-        policy = FeePolicy(base_fee, fee_rate, fee_spread, time_lock_delta)
-        ln.apply_fee_policy(policy)
-        ln.refresh()
-
+def channel_table(ln, score, show_remote_fees):
     table = Table(box=box.SIMPLE)
     table.add_column("in\nbound\n(k)", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
@@ -177,6 +132,56 @@ def suez(
             "{:,}".format(total_fees_remote),
         ]
     table.add_row(*columns)
+    return table
+
+
+@click.command()
+@click.option("--base-fee", default=0, help="Set base fee.")
+@click.option("--fee-rate", default=0, help="Set fee rate.")
+@click.option("--fee-spread", default=0.0, help="Fee spread.")
+@click.option("--time-lock-delta", default=40, help="Set time lock delta.")
+@click.option(
+    "--client",
+    default="lnd",
+    type=click.Choice(("lnd", "c-lightning"), case_sensitive=False),
+    help="Type of LN client.",
+)
+@click.option(
+    "--client-args",
+    default=[],
+    multiple=True,
+    help="Extra arguments to pass to client RPC.",
+)
+@click.option(
+    "--show-remote-fees", is_flag=True, help="Show (estimate of) remote fees."
+)
+def suez(
+    base_fee,
+    fee_rate,
+    fee_spread,
+    time_lock_delta,
+    client,
+    client_args,
+    show_remote_fees,
+):
+    clients = {
+        "lnd": LndClient,
+        "c-lightning": ClnClient,
+    }
+
+    ln = clients[client](client_args)
+    score = Score()
+
+    if len(ln.channels) == 0:
+        click.echo("No channels found. Exiting")
+        return
+
+    if base_fee and fee_rate:
+        policy = FeePolicy(base_fee, fee_rate, fee_spread, time_lock_delta)
+        ln.apply_fee_policy(policy)
+        ln.refresh()
+
+    table = channel_table(ln, score, show_remote_fees)
 
     console = Console()
     console.print(table)
