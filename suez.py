@@ -83,7 +83,6 @@ def suez(
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("\nopener", justify="right")
     table.add_column("\nscore\n(M)", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
@@ -139,12 +138,10 @@ def suez(
                 "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             ]
         s = score.get(c.remote_node_id)
+        alias_color = "bright_blue" if c.opener == "local" else "bright_yellow"
         columns += [
-            "[bright_blue]local[/bright_blue]"
-            if c.opener == "local"
-            else "[bright_yellow]remote[/bright_yellow]",
             _score(s) if s is not None else "-",
-            markup.escape(c.remote_alias),
+            "[%s]%s[/%s]" % (alias_color, markup.escape(c.remote_alias), alias_color),
         ]
         table.add_row(*columns)
 
