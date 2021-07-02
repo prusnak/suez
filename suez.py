@@ -20,8 +20,14 @@ def _since(ts):
     return "%0.1f" % (d.total_seconds() / 86400)
 
 
-def _score(score):
-    return "%d" % (score // 1000000)
+def info_box(ln, score):
+    grid = Table.grid()
+    grid.add_column(style="bold")
+    grid.add_column()
+    grid.add_row("pubkey : ", ln.local_pubkey)
+    grid.add_row("alias  : ", ln.local_alias)
+    grid.add_row("score  : ", "{:,}".format(score.get(ln.local_pubkey)))
+    return grid
 
 
 def channel_table(ln, score, show_remote_fees):
@@ -95,7 +101,7 @@ def channel_table(ln, score, show_remote_fees):
         s = score.get(c.remote_node_id)
         alias_color = "bright_blue" if c.opener == "local" else "bright_yellow"
         columns += [
-            _score(s) if s is not None else "-",
+            "%d" % (s // 1000000) if s is not None else "-",
             "[%s]%s[/%s]" % (alias_color, markup.escape(c.remote_alias), alias_color),
         ]
         table.add_row(*columns)
@@ -181,7 +187,9 @@ def suez(
         ln.apply_fee_policy(policy)
         ln.refresh()
 
+    info = info_box(ln, score)
     table = channel_table(ln, score, show_remote_fees)
 
     console = Console()
+    console.print(info)
     console.print(table)
