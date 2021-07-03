@@ -24,12 +24,13 @@ def info_box(ln, score):
     grid = Table.grid()
     grid.add_column(style="bold")
     grid.add_column()
-    grid.add_row("pubkey : ", ln.local_pubkey)
-    grid.add_row("alias  : ", ln.local_alias)
+    grid.add_row("pubkey    : ", ln.local_pubkey)
+    grid.add_row("alias     : ", ln.local_alias)
+    grid.add_row("channels  : ", "%d" % len(ln.channels))
     if score is not None:
         node_score = score.get(ln.local_pubkey)
         node_score = "{:,}".format(node_score) if node_score is not None else "-"
-        grid.add_row("score  : ", node_score)
+        grid.add_row("score     : ", node_score)
     return grid
 
 
