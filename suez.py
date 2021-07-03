@@ -26,8 +26,9 @@ def info_box(ln, score):
     grid.add_column()
     grid.add_row("pubkey : ", ln.local_pubkey)
     grid.add_row("alias  : ", ln.local_alias)
-    get_score = score.get(ln.local_pubkey)
-    grid.add_row("score  : ", "{:,}".format(get_score if get_score else 0))
+    node_score = score.get(ln.local_pubkey)
+    node_score = "{:,}".format(node_score) if node_score is not None else "-"
+    grid.add_row("score  : ", node_score)
     return grid
 
 
