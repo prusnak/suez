@@ -26,9 +26,10 @@ def info_box(ln, score):
     grid.add_column()
     grid.add_row("pubkey : ", ln.local_pubkey)
     grid.add_row("alias  : ", ln.local_alias)
-    node_score = score.get(ln.local_pubkey)
-    node_score = "{:,}".format(node_score) if node_score is not None else "-"
-    grid.add_row("score  : ", node_score)
+    if score is not None:
+        node_score = score.get(ln.local_pubkey)
+        node_score = "{:,}".format(node_score) if node_score is not None else "-"
+        grid.add_row("score  : ", node_score)
     return grid
 
 
@@ -46,7 +47,8 @@ def channel_table(ln, score, show_remote_fees):
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
-    table.add_column("\nscore\n(M)", justify="right")
+    if score is not None:
+        table.add_column("\nscore\n(M)", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
     total_local, total_fees_local = 0, 0
@@ -100,10 +102,13 @@ def channel_table(ln, score, show_remote_fees):
             columns += [
                 "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             ]
-        s = score.get(c.remote_node_id)
+        if score is not None:
+            s = score.get(c.remote_node_id)
+            columns += [
+                "%d" % (s // 1000000) if s is not None else "-",
+            ]
         alias_color = "bright_blue" if c.opener == "local" else "bright_yellow"
         columns += [
-            "%d" % (s // 1000000) if s is not None else "-",
             "[%s]%s[/%s]" % (alias_color, markup.escape(c.remote_alias), alias_color),
         ]
         table.add_row(*columns)
@@ -163,6 +168,9 @@ def channel_table(ln, score, show_remote_fees):
 @click.option(
     "--show-remote-fees", is_flag=True, help="Show (estimate of) remote fees."
 )
+@click.option(
+    "--show-scores", is_flag=True, help="Show node scores (from Lightning Terminal)."
+)
 def suez(
     base_fee,
     fee_rate,
@@ -171,6 +179,7 @@ def suez(
     client,
     client_args,
     show_remote_fees,
+    show_scores,
 ):
     clients = {
         "lnd": LndClient,
@@ -178,7 +187,8 @@ def suez(
     }
 
     ln = clients[client](client_args)
-    score = Score()
+
+    score = Score() if show_scores else None
 
     if len(ln.channels) == 0:
         click.echo("No channels found. Exiting")
@@ -193,5 +203,6 @@ def suez(
     table = channel_table(ln, score, show_remote_fees)
 
     console = Console()
+    console.print()
     console.print(info)
     console.print(table)
