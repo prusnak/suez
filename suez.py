@@ -36,9 +36,9 @@ def info_box(ln, score):
 
 def channel_table(ln, score, show_remote_fees):
     table = Table(box=box.SIMPLE)
-    table.add_column("in\nbound\n(k)", justify="right", style="bright_red")
+    table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
-    table.add_column("out\nbound\n(k)", justify="right", style="green")
+    table.add_column("\noutbound", justify="right", style="green")
     table.add_column("local\nbase_fee\n(msat)", justify="right", style="bright_blue")
     table.add_column("local\nfee_rate\n(ppm)", justify="right", style="bright_blue")
     table.add_column("remote\nbase_fee\n(msat)", justify="right", style="bright_yellow")
@@ -49,7 +49,7 @@ def channel_table(ln, score, show_remote_fees):
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
     if score is not None:
-        table.add_column("\nscore\n(M)", justify="right")
+        table.add_column("\nscore", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
 
     total_local, total_fees_local = 0, 0
@@ -86,9 +86,9 @@ def channel_table(ln, score, show_remote_fees):
         if c.remote_fee_rate is not None:
             remote_fee_rates.append(c.remote_fee_rate)
         columns = [
-            "{:,}".format(c.remote_balance // 1000),
+            "{:,}".format(c.remote_balance),
             bar,
-            "{:,}".format(c.local_balance // 1000),
+            "{:,}".format(c.local_balance),
             str(c.local_base_fee) if c.local_base_fee is not None else "-",
             str(c.local_fee_rate) if c.local_fee_rate is not None else "-",
             str(c.remote_base_fee) if c.remote_base_fee is not None else "-",
@@ -106,7 +106,7 @@ def channel_table(ln, score, show_remote_fees):
         if score is not None:
             s = score.get(c.remote_node_id)
             columns += [
-                "%d" % (s // 1000000) if s is not None else "-",
+                "{:,}".format(s) if s is not None else "-",
             ]
         alias_color = "bright_blue" if c.opener == "local" else "bright_yellow"
         columns += [
@@ -124,15 +124,15 @@ def channel_table(ln, score, show_remote_fees):
         "─" * 4,
         None,
         None,
-        "─" * 7,
+        "─" * 6,
     ]
     if show_remote_fees:
-        columns += ["─" * 7]
+        columns += ["─" * 6]
     table.add_row(*columns)
     columns = [
-        "{:,}".format(total_remote // 1000),
+        "{:,}".format(total_remote),
         None,
-        "{:,}".format(total_local // 1000),
+        "{:,}".format(total_local),
         "{}".format(sum(local_base_fees) // len(local_base_fees)),
         "{}".format(sum(local_fee_rates) // len(local_fee_rates)),
         "{}".format(sum(remote_base_fees) // len(remote_base_fees)),
