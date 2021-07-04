@@ -109,8 +109,9 @@ def channel_table(ln, score, show_remote_fees):
                 "{:,}".format(s) if s is not None else "-",
             ]
         alias_color = "bright_blue" if c.opener == "local" else "bright_yellow"
+        alias = c.remote_alias if c.remote_alias else c.remote_node_id[:16]
         columns += [
-            "[%s]%s[/%s]" % (alias_color, markup.escape(c.remote_alias), alias_color),
+            "[%s]%s[/%s]" % (alias_color, markup.escape(alias), alias_color),
         ]
         table.add_row(*columns)
 
