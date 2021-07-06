@@ -34,7 +34,7 @@ def info_box(ln, score):
     return grid
 
 
-def channel_table(ln, score, show_remote_fees):
+def channel_table(ln, score, show_remote_fees, show_chan_ids):
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
@@ -51,6 +51,8 @@ def channel_table(ln, score, show_remote_fees):
     if score is not None:
         table.add_column("\nscore", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
+    if show_chan_ids:
+        table.add_column("\nchan_id")
 
     total_local, total_fees_local = 0, 0
     total_remote, total_fees_remote = 0, 0
@@ -113,6 +115,8 @@ def channel_table(ln, score, show_remote_fees):
         columns += [
             "[%s]%s[/%s]" % (alias_color, markup.escape(alias), alias_color),
         ]
+        if show_chan_ids:
+            columns += [c.chan_id]
         table.add_row(*columns)
 
     columns = [
@@ -173,6 +177,7 @@ def channel_table(ln, score, show_remote_fees):
 @click.option(
     "--show-scores", is_flag=True, help="Show node scores (from Lightning Terminal)."
 )
+@click.option("--show-chan-ids", is_flag=True, help="Show channel ids.")
 def suez(
     base_fee,
     fee_rate,
@@ -182,6 +187,7 @@ def suez(
     client_args,
     show_remote_fees,
     show_scores,
+    show_chan_ids,
 ):
     clients = {
         "lnd": LndClient,
@@ -202,7 +208,7 @@ def suez(
         ln.refresh()
 
     info = info_box(ln, score)
-    table = channel_table(ln, score, show_remote_fees)
+    table = channel_table(ln, score, show_remote_fees, show_chan_ids)
 
     console = Console()
     console.print()
