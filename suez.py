@@ -71,7 +71,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
             + ("·" * send)
             + "[/green]"
         )
-        if c.uptime is not None and c.lifetime is not None:
+        if c.uptime is not None and c.lifetime:
             uptime = 100 * c.uptime // c.lifetime
         else:
             uptime = "n/a"
