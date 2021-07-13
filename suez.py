@@ -202,7 +202,7 @@ def suez(
         click.echo("No channels found. Exiting")
         return
 
-    if base_fee and fee_rate:
+    if fee_rate:
         policy = FeePolicy(base_fee, fee_rate, fee_spread, time_lock_delta)
         ln.apply_fee_policy(policy)
         ln.refresh()
