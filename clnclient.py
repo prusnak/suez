@@ -32,7 +32,7 @@ class ClnClient:
                 to_us_msat = int(c["to_us_msat"].replace("msat", ""))
                 chan.capacity, chan.commit_fee = (
                     total_msat // 1000,
-                    int(c["last_tx_fee"].replace("msat", "")) // 1000,
+                    int(c["last_tx_fee_msat"].replace("msat", "")) // 1000,
                 )
                 chan.local_balance, chan.remote_balance = (
                     to_us_msat // 1000,
