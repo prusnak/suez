@@ -71,10 +71,10 @@ class ClnClient:
                 chan.local_base_fee, chan.local_fee_rate = fee_local
                 chan.remote_base_fee, chan.remote_fee_rate = fee_remote
                 chan.local_alias = self.local_alias
-                chan.remote_alias = self._run("listnodes", chan.remote_node_id)[
-                    "nodes"
-                ][0].get("alias")
-                if not chan.remote_alias:
+                listnode = self._run("listnodes", chan.remote_node_id)
+                if len(listnode["nodes"]) > 0:
+                        chan.remote_alias = listnode["nodes"][0].get("alias")
+                else:
                     chan.remote_alias = chan.remote_node_id
                 chan.last_forward = 0
                 chan.local_fees = 0
