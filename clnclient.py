@@ -73,7 +73,7 @@ class ClnClient:
                 chan.local_alias = self.local_alias
                 listnode = self._run("listnodes", chan.remote_node_id)
                 if len(listnode["nodes"]) > 0:
-                        chan.remote_alias = listnode["nodes"][0].get("alias")
+                        chan.remote_alias = listnode["nodes"][0].get("alias", chan.remote_node_id)
                 else:
                     chan.remote_alias = chan.remote_node_id
                 chan.last_forward = 0
