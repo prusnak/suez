@@ -2,13 +2,12 @@ import requests
 
 
 class Score:
-    JSON = (
-        "https://ln-scores.prod.lightningcluster.com/availability/v1/btc_summary.json"
-    )
-
     def __init__(self):
         try:
-            r = requests.get(self.JSON)
+            r = requests.get(
+                "https://ln-scores.prod.lightningcluster.com/availability/v1/btc_summary.json",
+                headers={"referer": "https://terminal.lightning.engineering/"},
+            )
             j = r.json()
             self.scores = j["scored"]
         except:
