@@ -37,13 +37,17 @@ for channels with mostly local balance.
 
 ## Lightning node support
 
-Currently, Suez supports LND and c-lightning.
+Currently, Suez supports LND (both via `lncli` and via the REST API) and c-lightning.
 
 By default it uses LND (`lncli`).
 
 You can use it with c-lightning as follows:
 
 `poetry run ./suez --client=c-lightning`
+
+You can connect to LND using the REST API as follows:
+
+`SSL_CERT_FILE=</path/to/tls.cert> poetry run ./suez --client=lnd-rest --client-args=rpcserver=https://<rpc-ip>:<rpc-port> --client-args=macaroonpath=</path/to/admin.macaroon> --client-args=tlscertpath=</path/to/tls.cert>`
 
 If you need to pass additional options to the lncli/lightning-cli you can do so:
 
