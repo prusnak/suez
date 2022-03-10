@@ -10,6 +10,18 @@ Tool for pretty printing and optimizing Lightning Network channels.
 2. `poetry install`
 3. `poetry run ./suez`
 
+## List channels
+
+For example:
+
+`poetry run ./suez --show-scores --show-chan-ids --exclude 788567540478574592`
+
+will list all channels and
+
+* show the [terminal web](https://terminal.lightning.engineering) score of each channel partner
+* show the channel id for each channel
+* exclude the channel with id 788567540478574592 from the list.
+
 ## Channel fee policy
 
 You can set channel fees by passing `--base-fee` and `--fee-rate` parameters.

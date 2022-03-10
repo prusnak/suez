@@ -34,7 +34,7 @@ def info_box(ln, score):
     return grid
 
 
-def channel_table(ln, score, show_remote_fees, show_chan_ids):
+def channel_table(ln, score, show_remote_fees, show_chan_ids, excludes):
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
@@ -60,6 +60,8 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
     remote_base_fees, remote_fee_rates = [], []
 
     for c in sorted(ln.channels.values(), key=_sort_channels):
+        if c.chan_id in excludes:
+            continue
         send = int(round(10 * c.local_balance / (c.capacity - c.commit_fee)))
         recv = 10 - send
         bar = (
@@ -138,10 +140,10 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
         "{:,}".format(total_remote),
         None,
         "{:,}".format(total_local),
-        "{}".format(sum(local_base_fees) // len(local_base_fees)),
-        "{}".format(sum(local_fee_rates) // len(local_fee_rates)),
-        "{}".format(sum(remote_base_fees) // len(remote_base_fees)),
-        "{}".format(sum(remote_fee_rates) // len(remote_fee_rates)),
+        format_average(local_base_fees),
+        format_average(local_fee_rates),
+        format_average(remote_base_fees),
+        format_average(remote_fee_rates),
         None,
         None,
         "{:,}".format(total_fees_local),
@@ -153,6 +155,11 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
     table.add_row(*columns)
     return table
 
+def format_average(fees):
+    if len(fees) == 0:
+        return None
+    else:
+        return "{}".format(sum(fees) // len(fees))
 
 @click.command()
 @click.option("--base-fee", default=0, help="Set base fee.")
@@ -178,6 +185,12 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
     "--show-scores", is_flag=True, help="Show node scores (from Lightning Terminal)."
 )
 @click.option("--show-chan-ids", is_flag=True, help="Show channel ids.")
+@click.option(
+    "--exclude",
+    default=[],
+    multiple=True,
+    help="Exclude specific channel ids from the table.",
+)
 def suez(
     base_fee,
     fee_rate,
@@ -188,6 +201,7 @@ def suez(
     show_remote_fees,
     show_scores,
     show_chan_ids,
+    exclude,
 ):
     clients = {
         "lnd": LndClient,
@@ -208,7 +222,7 @@ def suez(
         ln.refresh()
 
     info = info_box(ln, score)
-    table = channel_table(ln, score, show_remote_fees, show_chan_ids)
+    table = channel_table(ln, score, show_remote_fees, show_chan_ids, exclude)
 
     console = Console()
     console.print()
