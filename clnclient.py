@@ -20,69 +20,69 @@ class ClnClient:
         peers = self._run("listpeers")["peers"]
         for p in peers:
             if p["channels"]:
-                c = p["channels"][0]
-                chan = Channel()
-                chan.chan_id = c.get("short_channel_id")
-                chan.active = c["state"] == "CHANNELD_NORMAL"
-                chan.opener = c["opener"]
-                chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
-                chan.channel_point = c["channel_id"]
-                chan.uptime, chan.lifetime = None, None
-                total_msat = int(c["total_msat"].replace("msat", ""))
-                to_us_msat = int(c["to_us_msat"].replace("msat", ""))
-                chan.capacity, chan.commit_fee = (
-                    total_msat // 1000,
-                    int(c["last_tx_fee_msat"].replace("msat", "")) // 1000,
-                )
-                chan.local_balance, chan.remote_balance = (
-                    to_us_msat // 1000,
-                    (total_msat - to_us_msat) // 1000,
-                )
-                if chan.chan_id is not None:
-                    info = self._run("listchannels", chan.chan_id)["channels"]
-                else:
-                    info = {}
-                if len(info) > 0:
-                    node1_fee = (
-                        int(info[0]["base_fee_millisatoshi"]),
-                        int(info[0]["fee_per_millionth"]),
+                for c in p["channels"]:
+                    chan = Channel()
+                    chan.chan_id = c.get("short_channel_id")
+                    chan.active = c["state"] == "CHANNELD_NORMAL"
+                    chan.opener = c["opener"]
+                    chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
+                    chan.channel_point = c["channel_id"]
+                    chan.uptime, chan.lifetime = None, None
+                    total_msat = int(c["total_msat"].replace("msat", ""))
+                    to_us_msat = int(c["to_us_msat"].replace("msat", ""))
+                    chan.capacity, chan.commit_fee = (
+                        total_msat // 1000,
+                        int(c["last_tx_fee_msat"].replace("msat", "")) // 1000,
                     )
-                    if len(info) > 1:
-                        node2_fee = (
-                            int(info[1]["base_fee_millisatoshi"]),
-                            int(info[1]["fee_per_millionth"]),
-                        )
-                        if info[0]["source"] != self.local_pubkey:
-                            assert info[1]["source"] == self.local_pubkey
-                            fee_remote = node1_fee
-                            fee_local = node2_fee
-                    if len(info) > 1:
-                        if info[1]["source"] != self.local_pubkey:
-                            assert info[0]["source"] == self.local_pubkey
-                            fee_local = node1_fee
-                            fee_remote = node2_fee
+                    chan.local_balance, chan.remote_balance = (
+                        to_us_msat // 1000,
+                        (total_msat - to_us_msat) // 1000,
+                    )
+                    if chan.chan_id is not None:
+                        info = self._run("listchannels", chan.chan_id)["channels"]
                     else:
-                        fee_local = node1_fee
+                        info = {}
+                    if len(info) > 0:
+                        node1_fee = (
+                            int(info[0]["base_fee_millisatoshi"]),
+                            int(info[0]["fee_per_millionth"]),
+                        )
+                        if len(info) > 1:
+                            node2_fee = (
+                                int(info[1]["base_fee_millisatoshi"]),
+                                int(info[1]["fee_per_millionth"]),
+                            )
+                            if info[0]["source"] != self.local_pubkey:
+                                assert info[1]["source"] == self.local_pubkey
+                                fee_remote = node1_fee
+                                fee_local = node2_fee
+                        if len(info) > 1:
+                            if info[1]["source"] != self.local_pubkey:
+                                assert info[0]["source"] == self.local_pubkey
+                                fee_local = node1_fee
+                                fee_remote = node2_fee
+                        else:
+                            fee_local = node1_fee
+                            fee_remote = 0, 0
+                    else:
+                        fee_local = 0, 0
                         fee_remote = 0, 0
-                else:
-                    fee_local = 0, 0
-                    fee_remote = 0, 0
 
-                chan.local_base_fee, chan.local_fee_rate = fee_local
-                chan.remote_base_fee, chan.remote_fee_rate = fee_remote
-                chan.local_alias = self.local_alias
-                listnode = self._run("listnodes", chan.remote_node_id)
-                if len(listnode["nodes"]) > 0:
-                    chan.remote_alias = listnode["nodes"][0].get(
-                        "alias", chan.remote_node_id
-                    )
-                else:
-                    chan.remote_alias = chan.remote_node_id
-                chan.last_forward = 0
-                chan.local_fees = 0
-                chan.remote_fees = 0
+                    chan.local_base_fee, chan.local_fee_rate = fee_local
+                    chan.remote_base_fee, chan.remote_fee_rate = fee_remote
+                    chan.local_alias = self.local_alias
+                    listnode = self._run("listnodes", chan.remote_node_id)
+                    if len(listnode["nodes"]) > 0:
+                        chan.remote_alias = listnode["nodes"][0].get(
+                            "alias", chan.remote_node_id
+                        )
+                    else:
+                        chan.remote_alias = chan.remote_node_id
+                    chan.last_forward = 0
+                    chan.local_fees = 0
+                    chan.remote_fees = 0
 
-                self.channels[chan.chan_id] = chan
+                    self.channels[chan.chan_id] = chan
 
         fwd_events = self._run("listforwards", "status=settled")["forwards"]
         for fe in fwd_events:
