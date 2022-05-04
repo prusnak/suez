@@ -113,4 +113,3 @@ class LndClient(abc.ABC):
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
             self.updatechanpolicy(c, policy)
-
