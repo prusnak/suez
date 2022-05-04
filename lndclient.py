@@ -1,21 +1,45 @@
+import abc
 import json
-import subprocess
 
 from channel import Channel
 
 
-class LndClient:
+class LndClient(abc.ABC):
     def __init__(self, client_args):
         self.client_args = client_args
         self.refresh()
 
+    @abc.abstractmethod
+    def getinfo(self):
+        pass
+
+    @abc.abstractmethod
+    def listchannels(self):
+        pass
+
+    @abc.abstractmethod
+    def getchaninfo(self, chan_id):
+        pass
+
+    @abc.abstractmethod
+    def getnodeinfo(self, node_id):
+        pass
+
+    @abc.abstractmethod
+    def fwd_events(self):
+        pass
+
+    @abc.abstractmethod
+    def updatechanpolicy(self, channel_point, policy):
+        pass
+
     def refresh(self):
-        gi = self._run("getinfo")
+        gi = self.getinfo()
         self.local_pubkey = gi["identity_pubkey"]
         self.local_alias = gi["alias"]
         self.channels = {}
 
-        channels = self._run("listchannels")["channels"]
+        channels = self.listchannels()["channels"]
         for c in channels:
             chan = Channel()
             chan.chan_id = c["chan_id"]
@@ -34,7 +58,7 @@ class LndClient:
                 int(c["remote_balance"]),
             )
             try:
-                info = self._run("getchaninfo", chan.chan_id)
+                info = self.getchaninfo(chan.chan_id)
                 node1_fee = (
                     int(info["node1_policy"]["fee_base_msat"]),
                     int(info["node1_policy"]["fee_rate_milli_msat"]),
@@ -57,18 +81,14 @@ class LndClient:
                 chan.local_base_fee, chan.local_fee_rate = None, None
                 chan.remote_base_fee, chan.remote_fee_rate = None, None
             chan.local_alias = self.local_alias
-            chan.remote_alias = self._run("getnodeinfo", chan.remote_node_id)["node"][
-                "alias"
-            ]
+            chan.remote_alias = self.getnodeinfo(chan.remote_node_id)["node"]["alias"]
             chan.last_forward = 0
             chan.local_fees = 0
             chan.remote_fees = 0
 
             self.channels[chan.chan_id] = chan
 
-        fwd_events = self._run(
-            "fwdinghistory", "--max_events", "50000", "--start_time", "-30d"
-        )["forwarding_events"]
+        fwd_events = self.fwd_events()["forwarding_events"]
         for fe in fwd_events:
             cin = fe["chan_id_in"]
             cout = fe["chan_id_out"]
@@ -92,23 +112,5 @@ class LndClient:
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
-            base_fee, fee_rate, time_lock_delta = policy.calculate(c)
-            self._run(
-                "updatechanpolicy",
-                "--base_fee_msat",
-                str(base_fee),
-                "--fee_rate",
-                "%0.8f" % fee_rate,
-                "--time_lock_delta",
-                str(time_lock_delta),
-                "--chan_point",
-                c.channel_point,
-            )
+            self.updatechanpolicy(c, policy)
 
-    def _run(self, *args):
-        if self.client_args:
-            args = ["lncli"] + list(self.client_args) + list(args)
-        else:
-            args = ["lncli"] + list(args)
-        j = subprocess.run(args, stdout=subprocess.PIPE)
-        return json.loads(j.stdout)

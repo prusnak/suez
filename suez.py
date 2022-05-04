@@ -7,7 +7,8 @@ from rich.table import Table
 
 from clnclient import ClnClient
 from feepolicy import FeePolicy
-from lndclient import LndClient
+from lndcliclient import LndCliClient
+from lndrestclient import LndRestClient
 from score import Score
 
 
@@ -162,7 +163,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
 @click.option(
     "--client",
     default="lnd",
-    type=click.Choice(("lnd", "c-lightning"), case_sensitive=False),
+    type=click.Choice(("lnd", "c-lightning", "lnd-rest"), case_sensitive=False),
     help="Type of LN client.",
 )
 @click.option(
@@ -190,8 +191,9 @@ def suez(
     show_chan_ids,
 ):
     clients = {
-        "lnd": LndClient,
+        "lnd": LndCliClient,
         "c-lightning": ClnClient,
+        "lnd-rest": LndRestClient,
     }
 
     ln = clients[client](client_args)
