@@ -2,4 +2,4 @@
 from suez import suez
 
 if __name__ == "__main__":
-    suez()
+    suez(auto_envvar_prefix="SUEZ")
