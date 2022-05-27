@@ -2,6 +2,7 @@ import codecs
 from datetime import datetime, timedelta
 import json
 import posixpath
+from pathlib import Path
 import requests
 import time
 
@@ -12,14 +13,30 @@ class LndRestClient(LndClient):
     def __init__(self, client_args):
         args = dict(a.split("=", 1) for a in client_args)
 
-        self.rpcserver = args["rpcserver"]
-        self.macaroonpath = args["macaroonpath"]
-        self.tlscertpath = args["tlscertpath"]
+        self.rpcserver = (
+            args["rpcserver"] if "rpcserver" in args else "https://localhost:8080"
+        )
+        self.macaroonpath = (
+            Path(args["macaroonpath"])
+            if "macaroonpath" in args
+            else Path.home()
+            / ".lnd"
+            / "data"
+            / "chain"
+            / "bitcoin"
+            / "mainnet"
+            / "admin.macaroon"
+        )
+        self.tlscertpath = str(
+            Path(args["tlscertpath"])
+            if "tlscertpath" in args
+            else Path.home() / ".lnd" / "tls.cert"
+        )
 
         self.api_base = posixpath.join(self.rpcserver, "v1")
 
-        with open(self.macaroonpath, "rb") as f:
-            macaroon = codecs.encode(f.read(), "hex")
+        with self.macaroonpath.open("rb") as f:
+            macaroon = f.read().hex()
             self.headers = {"Grpc-Metadata-macaroon": macaroon}
 
         super().__init__(client_args)
