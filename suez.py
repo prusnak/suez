@@ -35,7 +35,7 @@ def info_box(ln, score):
     return grid
 
 
-def channel_table(ln, score, show_remote_fees, show_chan_ids):
+def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_stats):
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
@@ -47,6 +47,11 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
     table.add_column("\nuptime\n(%)", justify="right")
     table.add_column("last\nforward\n(days)", justify="right")
     table.add_column("local\nfees\n(sat)", justify="right", style="bright_cyan")
+    if show_forwarding_stats:
+        table.add_column("\nfwd in", justify="right")
+        table.add_column("\nin %", justify="right")
+        table.add_column("\nfwd out", justify="right")
+        table.add_column("\nout %", justify="right")
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
     if score is not None:
@@ -102,6 +107,13 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
             _since(c.last_forward) if c.last_forward else "never",
             "{:,}".format(c.local_fees) if c.local_fees else "-",
         ]
+        if show_forwarding_stats:
+            columns += [
+                "{}".format(c.ins),
+                "{:.0%}".format(c.ins_percent),
+                "{}".format(c.outs),
+                "{:.0%}".format(c.outs_percent),
+            ]
         if show_remote_fees:
             columns += [
                 "{:,}".format(c.remote_fees) if c.remote_fees else "-",
@@ -179,6 +191,9 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids):
     "--show-scores", is_flag=True, help="Show node scores (from Lightning Terminal)."
 )
 @click.option("--show-chan-ids", is_flag=True, help="Show channel ids.")
+@click.option(
+    "--show-forwarding-stats", is_flag=True, help="Show forwarding counts and success percentages (CLN)"
+)
 def suez(
     base_fee,
     fee_rate,
@@ -189,6 +204,7 @@ def suez(
     show_remote_fees,
     show_scores,
     show_chan_ids,
+    show_forwarding_stats,
 ):
     clients = {
         "lnd": LndCliClient,
@@ -210,7 +226,7 @@ def suez(
         ln.refresh()
 
     info = info_box(ln, score)
-    table = channel_table(ln, score, show_remote_fees, show_chan_ids)
+    table = channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_stats)
 
     console = Console()
     console.print()

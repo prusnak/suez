@@ -28,8 +28,8 @@ class ClnClient:
                     chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
                     chan.channel_point = c["channel_id"]
                     chan.uptime, chan.lifetime = None, None
-                    total_msat = int(c["total_msat"].replace("msat", ""))
-                    to_us_msat = int(c["to_us_msat"].replace("msat", ""))
+                    total_msat = int(c["msatoshi_total"])
+                    to_us_msat = int(c["msatoshi_to_us"])
                     chan.capacity, chan.commit_fee = (
                         total_msat // 1000,
                         int(c["last_tx_fee_msat"].replace("msat", "")) // 1000,
@@ -38,6 +38,13 @@ class ClnClient:
                         to_us_msat // 1000,
                         (total_msat - to_us_msat) // 1000,
                     )
+                    chan.ins = c["in_payments_fulfilled"]
+                    chan.ins_percent = chan.outs_percent = 0
+                    if chan.ins > 0:
+                        chan.ins_percent = chan.ins / c["in_payments_offered"]
+                    chan.outs = c["out_payments_fulfilled"]
+                    if chan.outs > 0:
+                        chan.outs_percent = chan.outs / c["out_payments_offered"]
                     if chan.chan_id is not None:
                         info = self._run("listchannels", chan.chan_id)["channels"]
                     else:
