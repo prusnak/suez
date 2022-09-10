@@ -5,7 +5,7 @@ class Score:
     def __init__(self):
         try:
             r = requests.get(
-                "https://ln-scores.prod.lightningcluster.com/availability/v1/btc_summary.json",
+                "https://ln-scores.prod.lightningcluster.com/availability/v2/btc_summary.json",
                 headers={"referer": "https://terminal.lightning.engineering/"},
             )
             j = r.json()
