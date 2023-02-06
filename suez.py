@@ -81,7 +81,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
             uptime = 100 * c.uptime // c.lifetime
         else:
             uptime = "n/a"
-        total_fees_local += c.local_fees
+        total_fees_local += c.local_fees_msat
         total_fees_remote += c.remote_fees
         total_local += c.local_balance
         total_remote += c.remote_balance
@@ -105,7 +105,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
             if c.active
             else "[bright_red]%s[/bright_red]" % uptime,
             _since(c.last_forward) if c.last_forward else "never",
-            "{:,}".format(c.local_fees) if c.local_fees else "-",
+            "{:,}".format(round(c.local_fees_msat/1000)) if c.local_fees_msat else "-",
         ]
         if show_forwarding_stats:
             columns += [
@@ -157,7 +157,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
         "{}".format(sum(remote_fee_rates) // len(remote_fee_rates)),
         None,
         None,
-        "{:,}".format(total_fees_local),
+        "{:,}".format(round(total_fees_local/1000)),
     ]
     if show_remote_fees:
         columns += [

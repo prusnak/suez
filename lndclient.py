@@ -83,7 +83,7 @@ class LndClient(abc.ABC):
             chan.local_alias = self.local_alias
             chan.remote_alias = self.getnodeinfo(chan.remote_node_id)["node"]["alias"]
             chan.last_forward = 0
-            chan.local_fees = 0
+            chan.local_fees_msat = 0
             chan.remote_fees = 0
 
             self.channels[chan.chan_id] = chan
@@ -93,7 +93,7 @@ class LndClient(abc.ABC):
             cin = fe["chan_id_in"]
             cout = fe["chan_id_out"]
             ts = int(fe["timestamp"])
-            fee = int(fe["fee"])
+            fee = int(fe["fee_msat"])
             amt_in = int(fe["amt_in"])
             amt_out = int(fe["amt_out"])
             if cin in self.channels:
@@ -108,7 +108,7 @@ class LndClient(abc.ABC):
                 self.channels[cout].last_forward = max(
                     ts, self.channels[cout].last_forward
                 )
-                self.channels[cout].local_fees += fee
+                self.channels[cout].local_fees_msat += fee
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
