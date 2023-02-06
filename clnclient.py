@@ -86,7 +86,7 @@ class ClnClient:
                     else:
                         chan.remote_alias = chan.remote_node_id
                     chan.last_forward = 0
-                    chan.local_fees = 0
+                    chan.local_fees_msat = 0
                     chan.remote_fees = 0
 
                     self.channels[chan.chan_id] = chan
@@ -96,7 +96,7 @@ class ClnClient:
             cin = fe["in_channel"]
             cout = fe["out_channel"]
             ts = int(fe.get("resolved_time", 0))
-            fee = fe["fee"] // 1000
+            fee = fe["fee"]
             amount_in = fe["in_msatoshi"] // 1000
             if cin in self.channels:
                 self.channels[cin].last_forward = max(
@@ -110,7 +110,7 @@ class ClnClient:
                 self.channels[cout].last_forward = max(
                     ts, self.channels[cout].last_forward
                 )
-                self.channels[cout].local_fees += fee
+                self.channels[cout].local_fees_msat += fee
 
     def apply_fee_policy(self, policy):
         for c in self.channels.values():
