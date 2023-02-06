@@ -105,7 +105,9 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
             if c.active
             else "[bright_red]%s[/bright_red]" % uptime,
             _since(c.last_forward) if c.last_forward else "never",
-            "{:,}".format(round(c.local_fees_msat/1000)) if c.local_fees_msat else "-",
+            "{:,}".format(round(c.local_fees_msat / 1000))
+            if c.local_fees_msat
+            else "-",
         ]
         if show_forwarding_stats:
             columns += [
@@ -157,7 +159,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
         "{}".format(sum(remote_fee_rates) // len(remote_fee_rates)),
         None,
         None,
-        "{:,}".format(round(total_fees_local/1000)),
+        "{:,}".format(round(total_fees_local / 1000)),
     ]
     if show_remote_fees:
         columns += [
@@ -192,7 +194,9 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
 )
 @click.option("--show-chan-ids", is_flag=True, help="Show channel ids.")
 @click.option(
-    "--show-forwarding-stats", is_flag=True, help="Show forwarding counts and success percentages (CLN)"
+    "--show-forwarding-stats",
+    is_flag=True,
+    help="Show forwarding counts and success percentages (CLN)",
 )
 def suez(
     base_fee,
@@ -226,7 +230,9 @@ def suez(
         ln.refresh()
 
     info = info_box(ln, score)
-    table = channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_stats)
+    table = channel_table(
+        ln, score, show_remote_fees, show_chan_ids, show_forwarding_stats
+    )
 
     console = Console()
     console.print()
