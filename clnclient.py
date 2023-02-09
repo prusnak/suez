@@ -5,9 +5,19 @@ from channel import Channel
 
 
 class ClnClient:
-    def __init__(self, client_args):
+    def __init__(self, client_args, include_private, include_public):
         self.client_args = client_args
+        self.include_private = include_private
+        self.include_public = include_public
         self.refresh()
+
+    def should_exclude(self, c):
+        return (
+            c["private"]
+            and not self.include_private
+            or not c["private"]
+            and not self.include_public
+        )
 
     def refresh(self):
         gi = self._run("getinfo")
@@ -21,10 +31,13 @@ class ClnClient:
         for p in peers:
             if p["channels"]:
                 for c in p["channels"]:
+                    if self.should_exclude(c):
+                        continue
                     chan = Channel()
                     chan.chan_id = c.get("short_channel_id")
                     chan.active = c["state"] == "CHANNELD_NORMAL"
                     chan.opener = c["opener"]
+                    chan.private = c["private"]
                     chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
                     chan.channel_point = c["channel_id"]
                     chan.uptime, chan.lifetime = None, None
