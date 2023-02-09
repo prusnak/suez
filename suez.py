@@ -35,7 +35,17 @@ def info_box(ln, score):
     return grid
 
 
-def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_stats):
+def channelcount_info_box(count, channel_type):
+    grid = Table.grid()
+    grid.add_column(style="bold")
+    grid.add_column()
+    grid.add_row("%s channels : " % channel_type, "%d" % count)
+    return grid
+
+
+def channel_table(
+    channels, score, show_remote_fees, show_chan_ids, show_forwarding_stats
+):
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
@@ -65,7 +75,7 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
     local_base_fees, local_fee_rates = [], []
     remote_base_fees, remote_fee_rates = [], []
 
-    for c in sorted(ln.channels.values(), key=_sort_channels):
+    for c in sorted(channels, key=_sort_channels):
         send = int(round(10 * c.local_balance / (c.capacity - c.commit_fee)))
         recv = 10 - send
         bar = (
@@ -198,6 +208,12 @@ def channel_table(ln, score, show_remote_fees, show_chan_ids, show_forwarding_st
     is_flag=True,
     help="Show forwarding counts and success percentages (CLN)",
 )
+@click.option(
+    "--channels",
+    default="all",
+    type=click.Choice(("all", "public", "private", "split"), case_sensitive=False),
+    help="Which channels to select/show.",
+)
 def suez(
     base_fee,
     fee_rate,
@@ -209,6 +225,7 @@ def suez(
     show_scores,
     show_chan_ids,
     show_forwarding_stats,
+    channels,
 ):
     clients = {
         "lnd": LndCliClient,
@@ -216,7 +233,10 @@ def suez(
         "lnd-rest": LndRestClient,
     }
 
-    ln = clients[client](client_args)
+    include_private = channels in ["all", "private", "split"]
+    include_public = channels in ["all", "public", "split"]
+
+    ln = clients[client](client_args, include_private, include_public)
 
     score = Score() if show_scores else None
 
@@ -230,11 +250,43 @@ def suez(
         ln.refresh()
 
     info = info_box(ln, score)
-    table = channel_table(
-        ln, score, show_remote_fees, show_chan_ids, show_forwarding_stats
-    )
 
     console = Console()
     console.print()
     console.print(info)
-    console.print(table)
+
+    if channels == "split":
+        public_channels = [c for c in ln.channels.values() if not c.private]
+        private_channels = [c for c in ln.channels.values() if c.private]
+
+        public_table = channel_table(
+            public_channels,
+            score,
+            show_remote_fees,
+            show_chan_ids,
+            show_forwarding_stats,
+        )
+        public_info = channelcount_info_box(len(public_channels), "public")
+        private_table = channel_table(
+            private_channels,
+            score,
+            show_remote_fees,
+            show_chan_ids,
+            show_forwarding_stats,
+        )
+        private_info = channelcount_info_box(len(private_channels), "private")
+
+        console.print(public_table)
+        console.print(public_info)
+        console.print(private_table)
+        console.print(private_info)
+        console.print()
+    else:
+        table = channel_table(
+            ln.channels.values(),
+            score,
+            show_remote_fees,
+            show_chan_ids,
+            show_forwarding_stats,
+        )
+        console.print(table)
