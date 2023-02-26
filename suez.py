@@ -233,10 +233,7 @@ def suez(
         "lnd-rest": LndRestClient,
     }
 
-    include_private = channels in ["all", "private", "split"]
-    include_public = channels in ["all", "public", "split"]
-
-    ln = clients[client](client_args, include_private, include_public)
+    ln = clients[client](client_args)
 
     score = Score() if show_scores else None
 
@@ -282,8 +279,15 @@ def suez(
         console.print(private_info)
         console.print()
     else:
+        if channels == "public":
+            show_channels = [c for c in ln.channels.values() if not c.private]
+        elif channels == "private":
+            show_channels = [c for c in ln.channels.values() if c.private]
+        else:  # all
+            show_channels = ln.channels.values()
+
         table = channel_table(
-            ln.channels.values(),
+            show_channels,
             score,
             show_remote_fees,
             show_chan_ids,

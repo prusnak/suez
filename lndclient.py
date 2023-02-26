@@ -5,10 +5,8 @@ from channel import Channel
 
 
 class LndClient(abc.ABC):
-    def __init__(self, client_args, include_private, include_public):
+    def __init__(self, client_args):
         self.client_args = client_args
-        self.include_private = include_private
-        self.include_public = include_public
         self.refresh()
 
     @abc.abstractmethod
@@ -35,14 +33,6 @@ class LndClient(abc.ABC):
     def updatechanpolicy(self, channel_point, policy):
         pass
 
-    def should_exclude(self, c):
-        return (
-            c["private"]
-            and not self.include_private
-            or not c["private"]
-            and not self.include_public
-        )
-
     def refresh(self):
         gi = self.getinfo()
         self.local_pubkey = gi["identity_pubkey"]
@@ -51,8 +41,6 @@ class LndClient(abc.ABC):
 
         channels = self.listchannels()["channels"]
         for c in channels:
-            if self.should_exclude(c):
-                continue
             chan = Channel()
             chan.chan_id = c["chan_id"]
             chan.active = c["active"]
