@@ -256,29 +256,33 @@ def suez(
         public_channels = [c for c in ln.channels.values() if not c.private]
         private_channels = [c for c in ln.channels.values() if c.private]
 
-        public_table = channel_table(
-            public_channels,
-            score,
-            show_remote_fees,
-            show_chan_ids,
-            show_forwarding_stats,
-        )
-        public_info = channelcount_info_box(len(public_channels), "public")
-        private_table = channel_table(
-            private_channels,
-            score,
-            show_remote_fees,
-            show_chan_ids,
-            show_forwarding_stats,
-        )
-        private_info = channelcount_info_box(len(private_channels), "private")
+        if len(public_channels) > 0:
+            public_table = channel_table(
+                public_channels,
+                score,
+                show_remote_fees,
+                show_chan_ids,
+                show_forwarding_stats,
+            )
+            public_info = channelcount_info_box(len(public_channels), "public")
+            console.print(public_table)
+            console.print(public_info)
 
-        console.print(public_table)
-        console.print(public_info)
-        console.print(private_table)
-        console.print(private_info)
+        if len(private_channels) > 0:
+            private_table = channel_table(
+                private_channels,
+                score,
+                show_remote_fees,
+                show_chan_ids,
+                show_forwarding_stats,
+            )
+            private_info = channelcount_info_box(len(private_channels), "private")
+            console.print(private_table)
+            console.print(private_info)
         console.print()
+
     else:
+
         if channels == "public":
             show_channels = [c for c in ln.channels.values() if not c.private]
         elif channels == "private":
@@ -286,11 +290,12 @@ def suez(
         else:  # all
             show_channels = ln.channels.values()
 
-        table = channel_table(
-            show_channels,
-            score,
-            show_remote_fees,
-            show_chan_ids,
-            show_forwarding_stats,
-        )
-        console.print(table)
+        if len(show_channels) > 0:
+            table = channel_table(
+                show_channels,
+                score,
+                show_remote_fees,
+                show_chan_ids,
+                show_forwarding_stats,
+            )
+            console.print(table)
