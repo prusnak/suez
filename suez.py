@@ -21,6 +21,14 @@ def _since(ts):
     return "%0.1f" % (d.total_seconds() / 86400)
 
 
+def _resolve_htlc(htlc_msat):
+    if htlc_msat is None:
+        return "-"
+    htlc_sat = htlc_msat / 1000
+    htlc_sat = int(htlc_sat) if htlc_sat == int(htlc_sat) else htlc_sat
+    return "{:,}".format(htlc_sat)
+
+
 def info_box(ln, score):
     grid = Table.grid()
     grid.add_column(style="bold")
@@ -44,12 +52,26 @@ def channelcount_info_box(count, channel_type):
 
 
 def channel_table(
-    channels, score, show_remote_fees, show_chan_ids, show_forwarding_stats
+    channels,
+    score,
+    show_remote_fees,
+    show_chan_ids,
+    show_forwarding_stats,
+    show_minmax_htlc,
 ):
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
     table.add_column("\noutbound", justify="right", style="green")
+    if show_minmax_htlc:
+        table.add_column("local\nmin_htlc\n(sat)", justify="right", style="bright_blue")
+        table.add_column("local\nmax_htlc\n(sat)", justify="right", style="bright_blue")
+        table.add_column(
+            "remote\nmin_htlc\n(sat)", justify="right", style="bright_yellow"
+        )
+        table.add_column(
+            "remote\nmax_htlc\n(sat)", justify="right", style="bright_yellow"
+        )
     table.add_column("local\nbase_fee\n(msat)", justify="right", style="bright_blue")
     table.add_column("local\nfee_rate\n(ppm)", justify="right", style="bright_blue")
     table.add_column("remote\nbase_fee\n(msat)", justify="right", style="bright_yellow")
@@ -107,6 +129,15 @@ def channel_table(
             "{:,}".format(c.remote_balance),
             bar,
             "{:,}".format(c.local_balance),
+        ]
+        if show_minmax_htlc:
+            columns += [
+                _resolve_htlc(c.local_min_htlc),
+                _resolve_htlc(c.local_max_htlc),
+                _resolve_htlc(c.remote_min_htlc),
+                _resolve_htlc(c.remote_max_htlc),
+            ]
+        columns += [
             str(c.local_base_fee) if c.local_base_fee is not None else "-",
             str(c.local_fee_rate) if c.local_fee_rate is not None else "-",
             str(c.remote_base_fee) if c.remote_base_fee is not None else "-",
@@ -148,6 +179,15 @@ def channel_table(
         "─" * 6,
         None,
         "─" * 6,
+    ]
+    if show_minmax_htlc:
+        columns += [
+            None,
+            None,
+            None,
+            None,
+        ]
+    columns += [
         "─" * 4,
         "─" * 4,
         "─" * 4,
@@ -163,6 +203,15 @@ def channel_table(
         "{:,}".format(total_remote),
         None,
         "{:,}".format(total_local),
+    ]
+    if show_minmax_htlc:
+        columns += [
+            None,
+            None,
+            None,
+            None,
+        ]
+    columns += [
         "{}".format(sum(local_base_fees) // len(local_base_fees)),
         "{}".format(sum(local_fee_rates) // len(local_fee_rates)),
         "{}".format(sum(remote_base_fees) // len(remote_base_fees)),
@@ -208,6 +257,7 @@ def channel_table(
     is_flag=True,
     help="Show forwarding counts and success percentages (CLN)",
 )
+@click.option("--show-minmax-htlc", is_flag=True, help="Show min and max htlc.")
 @click.option(
     "--channels",
     default="all",
@@ -225,6 +275,7 @@ def suez(
     show_scores,
     show_chan_ids,
     show_forwarding_stats,
+    show_minmax_htlc,
     channels,
 ):
     clients = {
@@ -263,6 +314,7 @@ def suez(
                 show_remote_fees,
                 show_chan_ids,
                 show_forwarding_stats,
+                show_minmax_htlc,
             )
             public_info = channelcount_info_box(len(public_channels), "public")
             console.print(public_table)
@@ -275,6 +327,7 @@ def suez(
                 show_remote_fees,
                 show_chan_ids,
                 show_forwarding_stats,
+                show_minmax_htlc,
             )
             private_info = channelcount_info_box(len(private_channels), "private")
             console.print(private_table)
@@ -282,7 +335,6 @@ def suez(
         console.print()
 
     else:
-
         if channels == "public":
             show_channels = [c for c in ln.channels.values() if not c.private]
         elif channels == "private":
@@ -297,5 +349,6 @@ def suez(
                 show_remote_fees,
                 show_chan_ids,
                 show_forwarding_stats,
+                show_minmax_htlc,
             )
             console.print(table)
