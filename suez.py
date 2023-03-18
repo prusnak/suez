@@ -9,7 +9,7 @@ from clnclient import ClnClient
 from feepolicy import FeePolicy
 from lndcliclient import LndCliClient
 from lndrestclient import LndRestClient
-from score import Score
+from terminal_web import TerminalWeb
 
 
 def _sort_channels(c):
@@ -35,18 +35,25 @@ def _resolve_disabled(c):
     res = "[bright_blue]{}[/bright_blue]|[bright_yellow]{}[/bright_yellow]"
     return res.format(local, remote)
 
+def _resolve_good_peer(c, terminal_web):
+    good_in = terminal_web.is_good_inbound_peer(c.remote_node_id)
+    good_out = terminal_web.is_good_outbound_peer(c.remote_node_id)
+    res_in = "[green]y[/green]" if good_in else "[bright_red]n[/bright_red]"
+    res_out = "[green]y[/green]" if good_out else "[bright_red]n[/bright_red]"
+    return res_in + "|" + res_out
 
-def info_box(ln, score):
+
+def info_box(ln, terminal_web):
     grid = Table.grid()
     grid.add_column(style="bold")
     grid.add_column()
     grid.add_row("pubkey    : ", ln.local_pubkey)
     grid.add_row("alias     : ", ln.local_alias)
     grid.add_row("channels  : ", "%d" % len(ln.channels))
-    if score is not None:
-        node_score = score.get(ln.local_pubkey)
-        node_score = "{:,}".format(node_score) if node_score is not None else "-"
-        grid.add_row("score     : ", node_score)
+    if terminal_web.show_scores:
+        score = terminal_web.get_score(ln.local_pubkey)
+        score = "{:,}".format(score) if score is not None else "-"
+        grid.add_row("score     : ", score)
     return grid
 
 
@@ -60,7 +67,7 @@ def channelcount_info_box(count, channel_type):
 
 def channel_table(
     channels,
-    score,
+    terminal_web,
     show_remote_fees,
     show_chan_ids,
     show_forwarding_stats,
@@ -96,7 +103,9 @@ def channel_table(
         table.add_column("\nout %", justify="right")
     if show_remote_fees:
         table.add_column("remote\nfees\n(sat)", justify="right", style="bright_cyan")
-    if score is not None:
+    if terminal_web.show_good_peers:
+        table.add_column("good\npeer\n(in|out)", justify="right")
+    if terminal_web.show_scores:
         table.add_column("\nscore", justify="right")
     table.add_column("\nalias", max_width=25, no_wrap=True)
     if show_chan_ids:
@@ -175,8 +184,12 @@ def channel_table(
             columns += [
                 "{:,}".format(c.remote_fees) if c.remote_fees else "-",
             ]
-        if score is not None:
-            s = score.get(c.remote_node_id)
+        if terminal_web.show_good_peers:
+            columns += [
+                _resolve_good_peer(c, terminal_web),
+            ]
+        if terminal_web.show_scores:
+            s = terminal_web.get_score(c.remote_node_id)
             columns += [
                 "{:,}".format(s) if s is not None else "-",
             ]
@@ -273,6 +286,9 @@ def channel_table(
 @click.option(
     "--show-scores", is_flag=True, help="Show node scores (from Lightning Terminal)."
 )
+@click.option(
+    "--show-good-peers", is_flag=True, help="Show good peers (from Lightning Terminal)."
+)
 @click.option("--show-chan-ids", is_flag=True, help="Show channel ids.")
 @click.option(
     "--show-forwarding-stats",
@@ -296,6 +312,7 @@ def suez(
     client_args,
     show_remote_fees,
     show_scores,
+    show_good_peers,
     show_chan_ids,
     show_forwarding_stats,
     show_minmax_htlc,
@@ -310,18 +327,18 @@ def suez(
 
     ln = clients[client](client_args)
 
-    score = Score() if show_scores else None
-
     if len(ln.channels) == 0:
         click.echo("No channels found. Exiting")
         return
+
+    terminal_web = TerminalWeb(ln.local_pubkey, show_scores, show_good_peers)
 
     if fee_rate:
         policy = FeePolicy(base_fee, fee_rate, fee_spread, time_lock_delta)
         ln.apply_fee_policy(policy)
         ln.refresh()
 
-    info = info_box(ln, score)
+    info = info_box(ln, terminal_web)
 
     console = Console()
     console.print()
@@ -334,7 +351,7 @@ def suez(
         if len(public_channels) > 0:
             public_table = channel_table(
                 public_channels,
-                score,
+                terminal_web,
                 show_remote_fees,
                 show_chan_ids,
                 show_forwarding_stats,
@@ -348,7 +365,7 @@ def suez(
         if len(private_channels) > 0:
             private_table = channel_table(
                 private_channels,
-                score,
+                terminal_web,
                 show_remote_fees,
                 show_chan_ids,
                 show_forwarding_stats,
@@ -371,7 +388,7 @@ def suez(
         if len(show_channels) > 0:
             table = channel_table(
                 show_channels,
-                score,
+                terminal_web,
                 show_remote_fees,
                 show_chan_ids,
                 show_forwarding_stats,
