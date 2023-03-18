@@ -70,6 +70,7 @@ class LndClient(abc.ABC):
                     int(node1_policy["min_htlc"]),
                     int(node1_policy["max_htlc_msat"]),
                 )
+                node1_disabled = node1_policy["disabled"]
                 node2_fee = (
                     int(node2_policy["fee_base_msat"]),
                     int(node2_policy["fee_rate_milli_msat"]),
@@ -78,27 +79,35 @@ class LndClient(abc.ABC):
                     int(node2_policy["min_htlc"]),
                     int(node2_policy["max_htlc_msat"]),
                 )
+                node2_disabled = node2_policy["disabled"]
                 if info["node1_pub"] != self.local_pubkey:
                     assert info["node2_pub"] == self.local_pubkey
                     fee_remote = node1_fee
                     fee_local = node2_fee
                     htlc_remote = node1_htlc
                     htlc_local = node2_htlc
+                    disabled_remote = node1_disabled
+                    disabled_local = node2_disabled
                 if info["node2_pub"] != self.local_pubkey:
                     assert info["node1_pub"] == self.local_pubkey
                     fee_local = node1_fee
                     fee_remote = node2_fee
                     htlc_local = node1_htlc
                     htlc_remote = node2_htlc
+                    disabled_local = node1_disabled
+                    disabled_remote = node2_disabled
                 chan.local_base_fee, chan.local_fee_rate = fee_local
                 chan.remote_base_fee, chan.remote_fee_rate = fee_remote
                 chan.local_min_htlc, chan.local_max_htlc = htlc_local
                 chan.remote_min_htlc, chan.remote_max_htlc = htlc_remote
+                chan.local_disabled = disabled_local
+                chan.remote_disabled = disabled_remote
             except:
                 chan.local_base_fee, chan.local_fee_rate = None, None
                 chan.remote_base_fee, chan.remote_fee_rate = None, None
                 chan.local_min_htlc, chan.local_max_htlc = None, None
                 chan.remote_min_htlc, chan.remote_max_htlc = None, None
+                chan.local_disabled, chan.remote_disabled = None, None
             chan.local_alias = self.local_alias
             chan.remote_alias = self.getnodeinfo(chan.remote_node_id)["node"]["alias"]
             chan.last_forward = 0

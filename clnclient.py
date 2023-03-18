@@ -59,6 +59,7 @@ class ClnClient:
                             int(info[0]["htlc_minimum_msat"]),
                             int(info[0]["htlc_maximum_msat"]),
                         )
+                        node1_disabled = not info[0]["active"]
                         if len(info) > 1:
                             node2_fee = (
                                 int(info[1]["base_fee_millisatoshi"]),
@@ -68,12 +69,15 @@ class ClnClient:
                                 int(info[1]["htlc_minimum_msat"]),
                                 int(info[1]["htlc_maximum_msat"]),
                             )
+                            node2_disabled = not info[1]["active"]
                             if info[0]["source"] != self.local_pubkey:
                                 assert info[1]["source"] == self.local_pubkey
                                 fee_remote = node1_fee
                                 fee_local = node2_fee
                                 htlc_remote = node1_htlc
                                 htlc_local = node2_htlc
+                                disabled_remote = node1_disabled
+                                disabled_local = node2_disabled
                         if len(info) > 1:
                             if info[1]["source"] != self.local_pubkey:
                                 assert info[0]["source"] == self.local_pubkey
@@ -81,21 +85,29 @@ class ClnClient:
                                 fee_remote = node2_fee
                                 htlc_local = node1_htlc
                                 htlc_remote = node2_htlc
+                                disabled_local = node1_disabled
+                                disabled_remote = node2_disabled
                         else:
                             fee_local = node1_fee
                             fee_remote = 0, 0
                             htlc_local = node1_htlc
                             htlc_remote = None, None
+                            disabled_local = node1_disabled
+                            disabled_remote = None
                     else:
                         fee_local = 0, 0
                         fee_remote = 0, 0
                         htlc_local = None, None
                         htlc_remote = None, None
+                        disabled_local = None
+                        disabled_remote = None
 
                     chan.local_base_fee, chan.local_fee_rate = fee_local
                     chan.remote_base_fee, chan.remote_fee_rate = fee_remote
                     chan.local_min_htlc, chan.local_max_htlc = htlc_local
                     chan.remote_min_htlc, chan.remote_max_htlc = htlc_remote
+                    chan.local_disabled = disabled_local
+                    chan.remote_disabled = disabled_remote
                     chan.local_alias = self.local_alias
                     listnode = self._run("listnodes", chan.remote_node_id)
                     if len(listnode["nodes"]) > 0:
