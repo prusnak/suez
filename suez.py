@@ -29,6 +29,13 @@ def _resolve_htlc(htlc_msat):
     return "{:,}".format(htlc_sat)
 
 
+def _resolve_disabled(c):
+    local = "y" if c.local_disabled else "n" if c.local_disabled is not None else "-"
+    remote = "y" if c.remote_disabled else "n" if c.remote_disabled is not None else "-"
+    res = "[bright_blue]{}[/bright_blue]|[bright_yellow]{}[/bright_yellow]"
+    return res.format(local, remote)
+
+
 def info_box(ln, score):
     grid = Table.grid()
     grid.add_column(style="bold")
@@ -58,11 +65,14 @@ def channel_table(
     show_chan_ids,
     show_forwarding_stats,
     show_minmax_htlc,
+    show_disabled,
 ):
     table = Table(box=box.SIMPLE)
     table.add_column("\ninbound", justify="right", style="bright_red")
     table.add_column("\nratio", justify="center")
     table.add_column("\noutbound", justify="right", style="green")
+    if show_disabled:
+        table.add_column("is\ndisabled", justify="right")
     if show_minmax_htlc:
         table.add_column("local\nmin_htlc\n(sat)", justify="right", style="bright_blue")
         table.add_column("local\nmax_htlc\n(sat)", justify="right", style="bright_blue")
@@ -130,6 +140,10 @@ def channel_table(
             bar,
             "{:,}".format(c.local_balance),
         ]
+        if show_disabled:
+            columns += [
+                _resolve_disabled(c),
+            ]
         if show_minmax_htlc:
             columns += [
                 _resolve_htlc(c.local_min_htlc),
@@ -180,6 +194,10 @@ def channel_table(
         None,
         "─" * 6,
     ]
+    if show_disabled:
+        columns += [
+            None,
+        ]
     if show_minmax_htlc:
         columns += [
             None,
@@ -204,6 +222,10 @@ def channel_table(
         None,
         "{:,}".format(total_local),
     ]
+    if show_disabled:
+        columns += [
+            None,
+        ]
     if show_minmax_htlc:
         columns += [
             None,
@@ -258,6 +280,7 @@ def channel_table(
     help="Show forwarding counts and success percentages (CLN)",
 )
 @click.option("--show-minmax-htlc", is_flag=True, help="Show min and max htlc.")
+@click.option("--show-disabled", is_flag=True, help="Show if channel is disabled.")
 @click.option(
     "--channels",
     default="all",
@@ -276,6 +299,7 @@ def suez(
     show_chan_ids,
     show_forwarding_stats,
     show_minmax_htlc,
+    show_disabled,
     channels,
 ):
     clients = {
@@ -315,6 +339,7 @@ def suez(
                 show_chan_ids,
                 show_forwarding_stats,
                 show_minmax_htlc,
+                show_disabled,
             )
             public_info = channelcount_info_box(len(public_channels), "public")
             console.print(public_table)
@@ -328,6 +353,7 @@ def suez(
                 show_chan_ids,
                 show_forwarding_stats,
                 show_minmax_htlc,
+                show_disabled,
             )
             private_info = channelcount_info_box(len(private_channels), "private")
             console.print(private_table)
@@ -350,5 +376,6 @@ def suez(
                 show_chan_ids,
                 show_forwarding_stats,
                 show_minmax_htlc,
+                show_disabled,
             )
             console.print(table)
