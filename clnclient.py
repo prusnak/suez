@@ -15,8 +15,6 @@ class ClnClient:
         self.local_alias = gi["alias"]
         self.channels = {}
 
-        timestamps, fees = {}, {}
-
         peers = self._run("listpeers")["peers"]
         for p in peers:
             if p["channels"]:
@@ -29,11 +27,11 @@ class ClnClient:
                     chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
                     chan.channel_point = c["channel_id"]
                     chan.uptime, chan.lifetime = None, None
-                    total_msat = int(c["msatoshi_total"])
-                    to_us_msat = int(c["msatoshi_to_us"])
+                    total_msat = self._resolve_total_msat(c)
+                    to_us_msat = self._resolve_to_us_msat(c)
                     chan.capacity, chan.commit_fee = (
                         total_msat // 1000,
-                        int(c["last_tx_fee_msat"].replace("msat", "")) // 1000,
+                        self._cleanup_msat_value(c["last_tx_fee_msat"]) // 1000,
                     )
                     chan.local_balance, chan.remote_balance = (
                         to_us_msat // 1000,
@@ -56,8 +54,8 @@ class ClnClient:
                             int(info[0]["fee_per_millionth"]),
                         )
                         node1_htlc = (
-                            int(info[0]["htlc_minimum_msat"]),
-                            int(info[0]["htlc_maximum_msat"]),
+                            self._cleanup_msat_value(info[0]["htlc_minimum_msat"]),
+                            self._cleanup_msat_value(info[0]["htlc_maximum_msat"]),
                         )
                         node1_disabled = not info[0]["active"]
                         if len(info) > 1:
@@ -66,8 +64,8 @@ class ClnClient:
                                 int(info[1]["fee_per_millionth"]),
                             )
                             node2_htlc = (
-                                int(info[1]["htlc_minimum_msat"]),
-                                int(info[1]["htlc_maximum_msat"]),
+                                self._cleanup_msat_value(info[1]["htlc_minimum_msat"]),
+                                self._cleanup_msat_value(info[1]["htlc_maximum_msat"]),
                             )
                             node2_disabled = not info[1]["active"]
                             if info[0]["source"] != self.local_pubkey:
@@ -153,6 +151,24 @@ class ClnClient:
                     str(base_fee),
                     str(int(fee_rate * 1000000)),
                 )
+
+    @staticmethod
+    def _resolve_total_msat(channel):
+        if "msatoshi_total" in channel:
+            return int(channel["msatoshi_total"])
+        return channel["total_msat"]
+
+    @staticmethod
+    def _resolve_to_us_msat(channel):
+        if "msatoshi_to_us" in channel:
+            return int(channel["msatoshi_to_us"])
+        return channel["to_us_msat"]
+
+    @staticmethod
+    def _cleanup_msat_value(value):
+        if isinstance(value, str):
+            return int(value.replace("msat", ""))
+        return value
 
     def _run(self, *args):
         if self.client_args:
