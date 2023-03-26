@@ -22,18 +22,12 @@ class TerminalWeb:
     def is_good_inbound_peer(self, remote_pubkey):
         if not self.local_node or not "good_inbound_peers" in self.local_node:
             return False
-        for pubkey in self.local_node["good_inbound_peers"]:
-            if pubkey == remote_pubkey:
-                return True
-        return False
+        return remote_pubkey in self.local_node["good_inbound_peers"]
 
     def is_good_outbound_peer(self, remote_pubkey):
         if not self.local_node or not "good_outbound_peers" in self.local_node:
             return False
-        for pubkey in self.local_node["good_outbound_peers"]:
-            if pubkey == remote_pubkey:
-                return True
-        return False
+        return remote_pubkey in self.local_node["good_outbound_peers"]
 
     def get_score(self, pubkey):
         node = self.nodes.get(pubkey)

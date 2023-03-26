@@ -35,6 +35,7 @@ def _resolve_disabled(c):
     res = "[bright_blue]{}[/bright_blue]|[bright_yellow]{}[/bright_yellow]"
     return res.format(local, remote)
 
+
 def _resolve_good_peer(c, terminal_web):
     good_in = terminal_web.is_good_inbound_peer(c.remote_node_id)
     good_out = terminal_web.is_good_outbound_peer(c.remote_node_id)
