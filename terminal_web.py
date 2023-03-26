@@ -20,12 +20,12 @@ class TerminalWeb:
                 self.local_node = None
 
     def is_good_inbound_peer(self, remote_pubkey):
-        if not self.local_node or not "good_inbound_peers" in self.local_node:
+        if not self.local_node or "good_inbound_peers" not in self.local_node:
             return False
         return remote_pubkey in self.local_node["good_inbound_peers"]
 
     def is_good_outbound_peer(self, remote_pubkey):
-        if not self.local_node or not "good_outbound_peers" in self.local_node:
+        if not self.local_node or "good_outbound_peers" not in self.local_node:
             return False
         return remote_pubkey in self.local_node["good_outbound_peers"]
 

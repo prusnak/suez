@@ -1,4 +1,3 @@
-import codecs
 import json
 import posixpath
 import time
