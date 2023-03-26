@@ -18,7 +18,7 @@ def _sort_channels(c):
 
 def _since(ts):
     d = datetime.utcnow() - datetime.utcfromtimestamp(ts)
-    return "%0.1f" % (d.total_seconds() / 86400)
+    return f"{d.total_seconds() / 86400:.1f}"
 
 
 def _resolve_htlc(htlc_msat):
@@ -26,14 +26,13 @@ def _resolve_htlc(htlc_msat):
         return "-"
     htlc_sat = htlc_msat / 1000
     htlc_sat = int(htlc_sat) if htlc_sat == int(htlc_sat) else htlc_sat
-    return "{:,}".format(htlc_sat)
+    return f"{htlc_sat:,}"
 
 
 def _resolve_disabled(c):
     local = "y" if c.local_disabled else "n" if c.local_disabled is not None else "-"
     remote = "y" if c.remote_disabled else "n" if c.remote_disabled is not None else "-"
-    res = "[bright_blue]{}[/bright_blue]|[bright_yellow]{}[/bright_yellow]"
-    return res.format(local, remote)
+    return f"[bright_blue]{local}[/bright_blue]|[bright_yellow]{remote}[/bright_yellow]"
 
 
 def _resolve_good_peer(c, terminal_web):
@@ -50,10 +49,10 @@ def info_box(ln, terminal_web):
     grid.add_column()
     grid.add_row("pubkey    : ", ln.local_pubkey)
     grid.add_row("alias     : ", ln.local_alias)
-    grid.add_row("channels  : ", "%d" % len(ln.channels))
+    grid.add_row("channels  : ", f"{len(ln.channels):,}")
     if terminal_web.show_scores:
         score = terminal_web.get_score(ln.local_pubkey)
-        score = "{:,}".format(score) if score is not None else "-"
+        score = f"{score:,}" if score is not None else "-"
         grid.add_row("score     : ", score)
     return grid
 
@@ -62,7 +61,7 @@ def channelcount_info_box(count, channel_type):
     grid = Table.grid()
     grid.add_column(style="bold")
     grid.add_column()
-    grid.add_row("%s channels : " % channel_type, "%d" % count)
+    grid.add_row(f"{channel_type} channels : ", f"{count}")
     return grid
 
 
@@ -146,9 +145,9 @@ def channel_table(
         if c.remote_fee_rate is not None:
             remote_fee_rates.append(c.remote_fee_rate)
         columns = [
-            "{:,}".format(c.remote_balance),
+            f"{c.remote_balance:,}",
             bar,
-            "{:,}".format(c.local_balance),
+            f"{c.local_balance:,}",
         ]
         if show_disabled:
             columns += [
@@ -166,24 +165,24 @@ def channel_table(
             str(c.local_fee_rate) if c.local_fee_rate is not None else "-",
             str(c.remote_base_fee) if c.remote_base_fee is not None else "-",
             str(c.remote_fee_rate) if c.remote_fee_rate is not None else "-",
-            "[green]%s[/green]" % uptime
+            f"[green]{uptime}[/green]"
             if c.active
-            else "[bright_red]%s[/bright_red]" % uptime,
+            else f"[bright_red]{uptime}[/bright_red]",
             _since(c.last_forward) if c.last_forward else "never",
-            "{:,}".format(round(c.local_fees_msat / 1000))
+            f"{round(c.local_fees_msat / 1000):,}"
             if c.local_fees_msat
             else "-",
         ]
         if show_forwarding_stats:
             columns += [
-                "{}".format(c.ins),
-                "{:.0%}".format(c.ins_percent),
-                "{}".format(c.outs),
-                "{:.0%}".format(c.outs_percent),
+                f"{c.ins}",
+                f"{c.ins_percent:.0%}",
+                f"{c.outs}"
+                f"{c.outs_percent:.0%}",
             ]
         if show_remote_fees:
             columns += [
-                "{:,}".format(c.remote_fees) if c.remote_fees else "-",
+                f"{c.remote_fees:,}" if c.remote_fees else "-",
             ]
         if terminal_web.show_good_peers:
             columns += [
@@ -192,12 +191,12 @@ def channel_table(
         if terminal_web.show_scores:
             s = terminal_web.get_score(c.remote_node_id)
             columns += [
-                "{:,}".format(s) if s is not None else "-",
+                f"{s:,}" if s is not None else "-",
             ]
         alias_color = "bright_blue" if c.opener == "local" else "bright_yellow"
         alias = c.remote_alias if c.remote_alias else c.remote_node_id[:16]
         columns += [
-            "[%s]%s[/%s]" % (alias_color, markup.escape(alias), alias_color),
+            f"[{alias_color}]{markup.escape(alias)}[/{alias_color}]",
         ]
         if show_chan_ids:
             columns += [c.chan_id]
@@ -232,9 +231,9 @@ def channel_table(
         columns += ["─" * 6]
     table.add_row(*columns)
     columns = [
-        "{:,}".format(total_remote),
+        f"{total_remote:,}",
         None,
-        "{:,}".format(total_local),
+        f"{total_local:,}",
     ]
     if show_disabled:
         columns += [
@@ -248,17 +247,17 @@ def channel_table(
             None,
         ]
     columns += [
-        "{}".format(sum(local_base_fees) // len(local_base_fees)),
-        "{}".format(sum(local_fee_rates) // len(local_fee_rates)),
-        "{}".format(sum(remote_base_fees) // len(remote_base_fees)),
-        "{}".format(sum(remote_fee_rates) // len(remote_fee_rates)),
+        f"{sum(local_base_fees) // len(local_base_fees)}",
+        f"{sum(local_fee_rates) // len(local_fee_rates)}",
+        f"{sum(remote_base_fees) // len(remote_base_fees)}",
+        f"{sum(remote_fee_rates) // len(remote_fee_rates)}",
         None,
         None,
-        "{:,}".format(round(total_fees_local / 1000)),
+        f"{round(total_fees_local / 1000):,}",
     ]
     if show_remote_fees:
         columns += [
-            "{:,}".format(total_fees_remote),
+            f"{total_fees_remote:,}",
         ]
     table.add_row(*columns)
     return table
