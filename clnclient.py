@@ -125,8 +125,14 @@ class ClnClient:
             cin = fe["in_channel"]
             cout = fe["out_channel"]
             ts = int(fe.get("resolved_time", 0))
-            fee = fe["fee"]
-            amount_in = fe["in_msatoshi"] // 1000
+            #
+            # 23.05 naming change renamed everything to _msat
+            if "fee" in fe:
+                fee = fe["fee"]
+                amount_in = fe["in_msatoshi"] // 1000
+            else:
+                fee = fe["fee_msat"]
+                amount_in = fe["in_msat"] // 1000
             if cin in self.channels:
                 self.channels[cin].last_forward = max(
                     ts, self.channels[cin].last_forward
