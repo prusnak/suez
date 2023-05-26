@@ -177,7 +177,7 @@ def channel_table(
             columns += [
                 f"{c.ins}",
                 f"{c.ins_percent:.0%}",
-                f"{c.outs}"
+                f"{c.outs}",
                 f"{c.outs_percent:.0%}",
             ]
         if show_remote_fees:
