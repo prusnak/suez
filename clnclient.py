@@ -16,109 +16,109 @@ class ClnClient:
         self.channels = {}
 
         peers = self._run("listpeers")["peers"]
-        for p in peers:
-            if p["channels"]:
-                for c in p["channels"]:
-                    chan = Channel()
-                    chan.chan_id = c.get("short_channel_id")
-                    chan.active = c["state"] == "CHANNELD_NORMAL"
-                    chan.opener = c["opener"]
-                    chan.private = c["private"]
-                    chan.local_node_id, chan.remote_node_id = self.local_pubkey, p["id"]
-                    chan.channel_point = c["channel_id"]
-                    chan.uptime, chan.lifetime = None, None
-                    total_msat = self._resolve_total_msat(c)
-                    to_us_msat = self._resolve_to_us_msat(c)
-                    chan.capacity, chan.commit_fee = (
-                        total_msat // 1000,
-                        self._cleanup_msat_value(c["last_tx_fee_msat"]) // 1000,
-                    )
-                    chan.local_balance, chan.remote_balance = (
-                        to_us_msat // 1000,
-                        (total_msat - to_us_msat) // 1000,
-                    )
-                    chan.ins = c["in_payments_fulfilled"]
-                    chan.ins_percent = chan.outs_percent = 0
-                    if chan.ins > 0:
-                        chan.ins_percent = chan.ins / c["in_payments_offered"]
-                    chan.outs = c["out_payments_fulfilled"]
-                    if chan.outs > 0:
-                        chan.outs_percent = chan.outs / c["out_payments_offered"]
-                    if chan.chan_id is not None:
-                        info = self._run("listchannels", chan.chan_id)["channels"]
-                    else:
-                        info = {}
-                    if len(info) > 0:
-                        node1_fee = (
-                            int(info[0]["base_fee_millisatoshi"]),
-                            int(info[0]["fee_per_millionth"]),
-                        )
-                        node1_htlc = (
-                            self._cleanup_msat_value(info[0]["htlc_minimum_msat"]),
-                            self._cleanup_msat_value(info[0]["htlc_maximum_msat"]),
-                        )
-                        node1_disabled = not info[0]["active"]
-                        if len(info) > 1:
-                            node2_fee = (
-                                int(info[1]["base_fee_millisatoshi"]),
-                                int(info[1]["fee_per_millionth"]),
-                            )
-                            node2_htlc = (
-                                self._cleanup_msat_value(info[1]["htlc_minimum_msat"]),
-                                self._cleanup_msat_value(info[1]["htlc_maximum_msat"]),
-                            )
-                            node2_disabled = not info[1]["active"]
-                            if info[0]["source"] != self.local_pubkey:
-                                assert info[1]["source"] == self.local_pubkey
-                                fee_remote = node1_fee
-                                fee_local = node2_fee
-                                htlc_remote = node1_htlc
-                                htlc_local = node2_htlc
-                                disabled_remote = node1_disabled
-                                disabled_local = node2_disabled
-                        if len(info) > 1:
-                            if info[1]["source"] != self.local_pubkey:
-                                assert info[0]["source"] == self.local_pubkey
-                                fee_local = node1_fee
-                                fee_remote = node2_fee
-                                htlc_local = node1_htlc
-                                htlc_remote = node2_htlc
-                                disabled_local = node1_disabled
-                                disabled_remote = node2_disabled
-                        else:
-                            fee_local = node1_fee
-                            fee_remote = 0, 0
-                            htlc_local = node1_htlc
-                            htlc_remote = None, None
-                            disabled_local = node1_disabled
-                            disabled_remote = None
-                    else:
-                        fee_local = 0, 0
-                        fee_remote = 0, 0
-                        htlc_local = None, None
-                        htlc_remote = None, None
-                        disabled_local = None
-                        disabled_remote = None
+        for p in (peer["id"] for peer in peers if peer["num_channels"] > 0):
+              peer_channels = self._run("listpeerchannels", p)["channels"]
+              for c in peer_channels:
+                  chan = Channel()
+                  chan.chan_id = c.get("short_channel_id")
+                  chan.active = c["state"] == "CHANNELD_NORMAL"
+                  chan.opener = c["opener"]
+                  chan.private = c["private"]
+                  chan.local_node_id, chan.remote_node_id = self.local_pubkey, p
+                  chan.channel_point = c["channel_id"]
+                  chan.uptime, chan.lifetime = None, None
+                  total_msat = self._resolve_total_msat(c)
+                  to_us_msat = self._resolve_to_us_msat(c)
+                  chan.capacity, chan.commit_fee = (
+                      total_msat // 1000,
+                      self._cleanup_msat_value(c["last_tx_fee_msat"]) // 1000,
+                  )
+                  chan.local_balance, chan.remote_balance = (
+                      to_us_msat // 1000,
+                      (total_msat - to_us_msat) // 1000,
+                  )
+                  chan.ins = c["in_payments_fulfilled"]
+                  chan.ins_percent = chan.outs_percent = 0
+                  if chan.ins > 0:
+                      chan.ins_percent = chan.ins / c["in_payments_offered"]
+                  chan.outs = c["out_payments_fulfilled"]
+                  if chan.outs > 0:
+                      chan.outs_percent = chan.outs / c["out_payments_offered"]
+                  if chan.chan_id is not None:
+                      info = self._run("listchannels", chan.chan_id)["channels"]
+                  else:
+                      info = {}
+                  if len(info) > 0:
+                      node1_fee = (
+                          int(info[0]["base_fee_millisatoshi"]),
+                          int(info[0]["fee_per_millionth"]),
+                      )
+                      node1_htlc = (
+                          self._cleanup_msat_value(info[0]["htlc_minimum_msat"]),
+                          self._cleanup_msat_value(info[0]["htlc_maximum_msat"]),
+                      )
+                      node1_disabled = not info[0]["active"]
+                      if len(info) > 1:
+                          node2_fee = (
+                              int(info[1]["base_fee_millisatoshi"]),
+                              int(info[1]["fee_per_millionth"]),
+                          )
+                          node2_htlc = (
+                              self._cleanup_msat_value(info[1]["htlc_minimum_msat"]),
+                              self._cleanup_msat_value(info[1]["htlc_maximum_msat"]),
+                          )
+                          node2_disabled = not info[1]["active"]
+                          if info[0]["source"] != self.local_pubkey:
+                              assert info[1]["source"] == self.local_pubkey
+                              fee_remote = node1_fee
+                              fee_local = node2_fee
+                              htlc_remote = node1_htlc
+                              htlc_local = node2_htlc
+                              disabled_remote = node1_disabled
+                              disabled_local = node2_disabled
+                      if len(info) > 1:
+                          if info[1]["source"] != self.local_pubkey:
+                              assert info[0]["source"] == self.local_pubkey
+                              fee_local = node1_fee
+                              fee_remote = node2_fee
+                              htlc_local = node1_htlc
+                              htlc_remote = node2_htlc
+                              disabled_local = node1_disabled
+                              disabled_remote = node2_disabled
+                      else:
+                          fee_local = node1_fee
+                          fee_remote = 0, 0
+                          htlc_local = node1_htlc
+                          htlc_remote = None, None
+                          disabled_local = node1_disabled
+                          disabled_remote = None
+                  else:
+                      fee_local = 0, 0
+                      fee_remote = 0, 0
+                      htlc_local = None, None
+                      htlc_remote = None, None
+                      disabled_local = None
+                      disabled_remote = None
 
-                    chan.local_base_fee, chan.local_fee_rate = fee_local
-                    chan.remote_base_fee, chan.remote_fee_rate = fee_remote
-                    chan.local_min_htlc, chan.local_max_htlc = htlc_local
-                    chan.remote_min_htlc, chan.remote_max_htlc = htlc_remote
-                    chan.local_disabled = disabled_local
-                    chan.remote_disabled = disabled_remote
-                    chan.local_alias = self.local_alias
-                    listnode = self._run("listnodes", chan.remote_node_id)
-                    if len(listnode["nodes"]) > 0:
-                        chan.remote_alias = listnode["nodes"][0].get(
-                            "alias", chan.remote_node_id
-                        )
-                    else:
-                        chan.remote_alias = chan.remote_node_id
-                    chan.last_forward = 0
-                    chan.local_fees_msat = 0
-                    chan.remote_fees = 0
+                  chan.local_base_fee, chan.local_fee_rate = fee_local
+                  chan.remote_base_fee, chan.remote_fee_rate = fee_remote
+                  chan.local_min_htlc, chan.local_max_htlc = htlc_local
+                  chan.remote_min_htlc, chan.remote_max_htlc = htlc_remote
+                  chan.local_disabled = disabled_local
+                  chan.remote_disabled = disabled_remote
+                  chan.local_alias = self.local_alias
+                  listnode = self._run("listnodes", chan.remote_node_id)
+                  if len(listnode["nodes"]) > 0:
+                      chan.remote_alias = listnode["nodes"][0].get(
+                          "alias", chan.remote_node_id
+                      )
+                  else:
+                      chan.remote_alias = chan.remote_node_id
+                  chan.last_forward = 0
+                  chan.local_fees_msat = 0
+                  chan.remote_fees = 0
 
-                    self.channels[chan.chan_id] = chan
+                  self.channels[chan.chan_id] = chan
 
         fwd_events = self._run("listforwards", "status=settled")["forwards"]
         for fe in fwd_events:
