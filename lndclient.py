@@ -41,7 +41,7 @@ class LndClient(abc.ABC):
         channels = self.listchannels()["channels"]
         for c in channels:
             chan = Channel()
-            chan.chan_id = c["chan_id"]
+            chan.chan_id = c.get("scid", c.get("chan_id"))  # Use scid for lncli 0.19+, fallback to chan_id for older versions
             chan.active = c["active"]
             chan.private = c["private"]
             chan.opener = "local" if c["initiator"] else "remote"
