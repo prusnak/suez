@@ -5,9 +5,9 @@ description = "Tool for optimizing Lightning Network channels"
 readme = "README.md"
 authors = ["Pavol Rusnak <pavol@rusnak.io>"]
 license = "GPL-3.0-or-later"
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 dependencies = [
-    "click>=8.3.1",
-    "requests>=2.32.5",
-    "rich>=14.3.3",
+    "click>=8",
+    "requests>=2",
+    "rich>=10",
 ]
